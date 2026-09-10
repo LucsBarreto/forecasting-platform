@@ -1,0 +1,1 @@
+"""módulo de utilidades do core."""

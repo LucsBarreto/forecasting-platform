@@ -1,0 +1,1 @@
+"""módulo para inicialização de fontes de dados."""

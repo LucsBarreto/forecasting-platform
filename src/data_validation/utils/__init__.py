@@ -1,0 +1,1 @@
+"""módulo de utilidade para validação de dados."""
