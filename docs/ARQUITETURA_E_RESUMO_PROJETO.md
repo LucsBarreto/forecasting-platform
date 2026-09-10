@@ -1,6 +1,6 @@
-# árvore arquitetural resumida do projeto forecasting-platform
+# Arquitetura e Resumo do Projeto
 
-## estrutura principal
+## Árvore arquitetural resumida do projeto forecasting-platform
 
 ```text
 forecasting-platform/
@@ -141,22 +141,28 @@ forecasting-platform/
     └── documentação principal de regras e arquitetura.
 ```
 
-## resumo de arquivos centrais
+## Resumo de arquivos centrais
 
-* `main.py`: orquestra o pipeline de produção e liga o fluxo de preprocessing, treinamento, avaliação e exportação.
-* `app.py`: oferece o dashboard streamlit de exploração visual e entrada de consultas.
-* `configs/data.yaml`: fonte oficial do contrato de entrada e schema runtime.
-* `configs/holidays.yaml`: calendário e regras de feriado.
-* `src/config/settings.py`: carregamento do objeto settings.
-* `src/data_sources/excel_source.py`: solução de leitura de excel e xlsb compatível.
-* `src/feature_engineering/temporal.py`: produção de features temporais e calendário.
-* `src/ml/models/baseline.py`: modelo de referência e previsão ingênua.
-* `src/ml/models/prophet.py`: embrulho do runtime prophet para produção.
-* `src/pipelines/train_pipeline.py`: fluxo de treinamento e serialização de modelos.
+- `main.py`: orquestra o pipeline de produção e liga o fluxo de preprocessing, treinamento, avaliação e exportação.
+- `app.py`: oferece o dashboard Streamlit de exploração visual e entrada de consultas.
+- `configs/data.yaml`: fonte oficial do contrato de entrada e schema runtime.
+- `configs/holidays.yaml`: calendário e regras de feriado.
+- `src/config/settings.py`: carregamento do objeto settings.
+- `src/data_sources/excel_source.py`: solução de leitura de excel e xlsb compatível.
+- `src/feature_engineering/temporal.py`: produção de features temporais e calendário.
+- `src/ml/models/baseline.py`: modelo de referência e previsão ingênua.
+- `src/ml/models/prophet.py`: embrulho do runtime prophet para produção.
+- `src/pipelines/train_pipeline.py`: fluxo de treinamento e serialização de modelos.
 
-## manutenção
+## Manutenção
 
-* mantenha o contrato yaml como fonte de verdade para o projeto;
-* faça mudanças de schema em `data.yaml`, e reflita isso em training, validation e modelos;
-* preserve o fluxo de features e split temporal; e
-* mantenha a documentação e os testes compatíveis com a mesma política de entrada.
+- Mantenha o contrato yaml como fonte de verdade para o projeto.
+- Faça mudanças de schema em `data.yaml` e reflita isso em `training`, `validation` e modelos.
+- Preserve o fluxo de features e split temporal.
+- Mantenha a documentação e os testes compatíveis com a mesma política de entrada.
+
+## Atualizações recentes
+
+- Dashboard: a coluna de métrica agora exibe o nome real da métrica configurada (por exemplo, MAPE), em vez de "metric" genérico.
+- Dashboard: o ranking de modelos agora respeita a lógica da métrica de avaliação, ordenando do melhor para o pior desempenho, com menor valor prevalecendo para métricas de erro.
+- Operacional: foi adicionado o script `clear_cache.py` na raiz do projeto para remover cache e artefatos temporários gerados em execução, com tratamento mais seguro para permissões do Windows/OneDrive.
