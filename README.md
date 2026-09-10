@@ -4,18 +4,56 @@ plataforma modular de previsão de demanda com ingestão, validação, pré-proc
 
 ## fluxo técnico
 
-fonte -> validação -> preprocessamento -> seleção de features -> split temporal -> treinamento -> previsão -> avaliação -> exportação
+```text
+fonte
+  ↓
+validação
+  ↓
+preprocessamento
+  ↓
+seleção de features
+  ↓
+split temporal
+  ↓
+treinamento
+  ↓
+previsão
+  ↓
+avaliação
+  ↓
+exportação
+```
 
 ## entrypoint
 
-main.py é o ponto de entrada principal. a orquestração dos componentes é composta em memória e os artefatos de execução são materializados em outputs/runs/<run_id>/.
+`main.py` é o ponto de entrada principal. a orquestração dos componentes é composta em memória e os artefatos de execução são materializados em `outputs/runs/<run_id>/`.
 
 ## contrato de dados
 
-config/data.yaml é a fonte oficial de schema. o contrato exige as colunas:
-ANO, MES, DATA, FILIAL DESTINO, FILIAL ORIGEM, REGIONAL, UF, COD CLIENTE, NOME CLIENTE, COD ITEM, PRODUTO, MARCA, CATEGORIA, SUBCANAL GTM, CANAL GTM, ATENDIMENTO, VOLUME, VALOR.
+`config/data.yaml` é a fonte oficial de schema. o contrato exige as colunas:
 
-a coluna DATA é a data temporal e VOLUME/VALOR são as medidas principais. o projeto não cria aliases automáticos; o contrato deve ser respeitado por fonte de entrada.
+```text
+ANO
+MES
+DATA
+FILIAL DESTINO
+FILIAL ORIGEM
+REGIONAL
+UF
+COD CLIENTE
+NOME CLIENTE
+COD ITEM
+PRODUTO
+MARCA
+CATEGORIA
+SUBCANAL GTM
+CANAL GTM
+ATENDIMENTO
+VOLUME
+VALOR
+```
+
+a coluna `DATA` é a data temporal e `VOLUME`/`VALOR` são as medidas principais. o projeto não cria aliases automáticos; o contrato deve ser respeitado por fonte de entrada.
 
 ## ambiente e execução
 
@@ -29,17 +67,18 @@ python main.py
 
 ## configuração
 
-- configs/data.yaml: contrato principal, paths, extensões, colunas e schema.
-- configs/features.yaml: ativação de temporal, lag, rolling, trend, business e holidays.
-- configs/forecast.yaml: alvos, horizonte, seed e proporções de split.
-- configs/models.yaml: modelos e regressão automática.
-- configs/pipeline.yaml: etapas do pipeline.
-- configs/validation.yaml: regras de validação.
-- configs/logging.yaml: nível e saída de logs.
-- configs/holidays.yaml: feriados e regras sazonais.
+* `configs/data.yaml`: contrato principal, paths, extensões, colunas e schema.
+* `configs/features.yaml`: ativação de temporal, lag, rolling, trend, business e holidays.
+* `configs/forecast.yaml`: alvos, horizonte, seed e proporções de split.
+* `configs/models.yaml`: modelos e regressão automática.
+* `configs/pipeline.yaml`: etapas do pipeline.
+* `configs/validation.yaml`: regras de validação.
+* `configs/logging.yaml`: nível e saída de logs.
+* `configs/holidays.yaml`: feriados e regras sazonais.
 
 ## arquitetura principal
 
+```text
 forecasting-platform/
 ├── main.py
 │   └── ponto de entrada principal que monta o fluxo de orquestração.
@@ -76,12 +115,12 @@ forecasting-platform/
 │   └── suíte automatizada de regressão e integração.
 └── docs/
     └── documentação arquitural e de manutenção.
+```
 
 ## manutenção
 
-- o schema deve partir de configs/data.yaml;
-- o pipeline operacional depende do modelo de config em yaml;
-- a camada de validação deve manter compatibilidade com a estrutura do contrato;
-- o módulo de modelos deve receber entrada consistente de features;
-- o fluxo principal deve manter o histórico de saída em outputs/runs/.
-
+* o schema deve partir de `configs/data.yaml`;
+* o pipeline operacional depende do modelo de config em yaml;
+* a camada de validação deve manter compatibilidade com a estrutura do contrato;
+* o módulo de modelos deve receber entrada consistente de features;
+* o fluxo principal deve manter o histórico de saída em `outputs/runs/`.
