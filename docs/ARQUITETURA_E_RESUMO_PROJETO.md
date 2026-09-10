@@ -1,7 +1,8 @@
-arvore arquitetural resumida do projeto forecasting-platform
+# árvore arquitetural resumida do projeto forecasting-platform
 
-estrutura principal
+## estrutura principal
 
+```text
 forecasting-platform/
 ├── main.py
 │   └── ponto de entrada da aplicação. compõe o pipeline principal e conecta o contrato de configuração com os componentes de preprocessamento, seleção, treinamento, avaliação e exportação.
@@ -138,23 +139,24 @@ forecasting-platform/
 │   └── scripts operacionais de smoke e readiness.
 └── docs/
     └── documentação principal de regras e arquitetura.
+```
 
-resumo de arquivos centrais
+## resumo de arquivos centrais
 
-main.py: orquestra o pipeline de produção e liga o fluxo de preprocessing, treinamento, avaliação e exportação.
-app.py: oferece o dashboard streamlit de exploração visual e entrada de consultas.
-configs/data.yaml: fonte oficial do contrato de entrada e schema runtime.
-configs/holidays.yaml: calendário e regras de feriado.
-src/config/settings.py: carregamento do objeto settings.
-src/data_sources/excel_source.py: solução de leitura de excel e xlsb compatível.
-src/feature_engineering/temporal.py: produção de features temporais e calendário.
-src/ml/models/baseline.py: modelo de referência e previsão ingênua.
-src/ml/models/prophet.py: embrulho do runtime prophet para produção.
-src/pipelines/train_pipeline.py: fluxo de treinamento e serialização de modelos.
+* `main.py`: orquestra o pipeline de produção e liga o fluxo de preprocessing, treinamento, avaliação e exportação.
+* `app.py`: oferece o dashboard streamlit de exploração visual e entrada de consultas.
+* `configs/data.yaml`: fonte oficial do contrato de entrada e schema runtime.
+* `configs/holidays.yaml`: calendário e regras de feriado.
+* `src/config/settings.py`: carregamento do objeto settings.
+* `src/data_sources/excel_source.py`: solução de leitura de excel e xlsb compatível.
+* `src/feature_engineering/temporal.py`: produção de features temporais e calendário.
+* `src/ml/models/baseline.py`: modelo de referência e previsão ingênua.
+* `src/ml/models/prophet.py`: embrulho do runtime prophet para produção.
+* `src/pipelines/train_pipeline.py`: fluxo de treinamento e serialização de modelos.
 
-manutenção
+## manutenção
 
-- mantenha o contrato yaml como fonte de verdade para o projeto;
-- faça mudanças de schema em data.yaml, e reflita isso em training, validation e modelos;
-- preserve o fluxo de features e split temporal; e
-- mantenha a documentação e os testes compatíveis com a mesma política de entrada.
+* mantenha o contrato yaml como fonte de verdade para o projeto;
+* faça mudanças de schema em `data.yaml`, e reflita isso em training, validation e modelos;
+* preserve o fluxo de features e split temporal; e
+* mantenha a documentação e os testes compatíveis com a mesma política de entrada.
