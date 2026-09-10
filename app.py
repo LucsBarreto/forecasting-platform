@@ -36,6 +36,7 @@ DARK = "#16324f"
 DATE_COLUMN = settings.data.date_column
 VOLUME_COLUMN = "VOLUME"
 VALUE_COLUMN = "VALOR"
+MAX_AGGREGATION_ROWS = 150_000
 REQUIRED_COLUMNS = list(settings.data.required_columns)
 BASE_DIMENSIONS = [
     column
@@ -156,6 +157,8 @@ def load_run_metrics(run_path: str | Path) -> pd.DataFrame:
     except (TypeError, ValueError, OSError):
         return pd.DataFrame(columns=["Modelo", "Métrica", "Resultado", "Ranking"])
 
+    metric_label = str(getattr(settings.models.evaluation, "metric", "mape")).upper()
+
     if isinstance(payload, dict):
         items = list(payload.items())
     elif isinstance(payload, list):
@@ -178,7 +181,7 @@ def load_run_metrics(run_path: str | Path) -> pd.DataFrame:
                 rows.append(
                     {
                         "Modelo": str(name),
-                        "Métrica": str(metric_name),
+                        "Métrica": str(metric_name).upper(),
                         "Resultado": float(metric_value),
                     }
                 )
@@ -186,7 +189,7 @@ def load_run_metrics(run_path: str | Path) -> pd.DataFrame:
             rows.append(
                 {
                     "Modelo": str(name),
-                    "Métrica": "metric",
+                    "Métrica": metric_label,
                     "Resultado": float(value),
                 }
             )
@@ -357,6 +360,7 @@ def render_overview(dataframe: pd.DataFrame) -> None:
         column.metric(label, metric, suffix)
 
 
+@st.cache_data(show_spinner=False)
 def build_time_series(dataframe: pd.DataFrame, frequency: str) -> pd.DataFrame:
     """agrega a evolução temporal por periodicidade escolhida."""
 
@@ -375,8 +379,39 @@ def build_time_series(dataframe: pd.DataFrame, frequency: str) -> pd.DataFrame:
     return series
 
 
+@st.cache_data(show_spinner=False)
+def build_historical_ranking(
+    dataframe: pd.DataFrame,
+    dimension: str,
+    metric_choice: str,
+) -> pd.DataFrame:
+    """pré-agrega ranking histórico para reduzir recalculos de filtro e gráfico."""
+
+    ranking = (
+        dataframe.assign(**{dimension: dataframe[dimension].fillna("Não informado")})
+        .groupby(dimension, as_index=False)
+        .agg(Volume=(VOLUME_COLUMN, "sum"), Valor=(VALUE_COLUMN, "sum"))
+    )
+    if metric_choice == "Volume":
+        ranking = ranking.sort_values("Volume", ascending=False)
+        ranking["Metric"] = "Volume"
+    elif metric_choice == "Valor":
+        ranking = ranking.sort_values("Valor", ascending=False)
+        ranking["Metric"] = "Valor"
+    else:
+        ranking["Volume + Valor"] = ranking["Volume"] + ranking["Valor"]
+        ranking = ranking.sort_values("Volume + Valor", ascending=False)
+        ranking["Metric"] = "Volume + Valor"
+    return ranking
+
+
 def render_historical_analysis(dataframe: pd.DataFrame) -> None:
     """renderiza análise histórica, ranking e evolução temporal."""
+
+    if len(dataframe) > MAX_AGGREGATION_ROWS:
+        st.info(
+            "A base filtrada é grande. O dashboard está usando uma agregação resumida para manter a experiência responsiva."
+        )
 
     st.subheader("Análise histórica")
 
@@ -485,20 +520,12 @@ def render_historical_analysis(dataframe: pd.DataFrame) -> None:
             config={"displaylogo": False, "scrollZoom": True},
         )
 
-    ranking = (
-        dataframe.assign(**{dimension: dataframe[dimension].fillna("Não informado")})
-        .groupby(dimension, as_index=False)
-        .agg(Volume=(VOLUME_COLUMN, "sum"), Valor=(VALUE_COLUMN, "sum"))
-    )
+    ranking = build_historical_ranking(dataframe, dimension, metric_choice)
     if metric_choice == "Volume":
-        ranking = ranking.sort_values("Volume", ascending=False)
         ranking_metric = "Volume"
     elif metric_choice == "Valor":
-        ranking = ranking.sort_values("Valor", ascending=False)
         ranking_metric = "Valor"
     else:
-        ranking["Volume + Valor"] = ranking["Volume"] + ranking["Valor"]
-        ranking = ranking.sort_values("Volume + Valor", ascending=False)
         ranking_metric = "Volume + Valor"
 
     limit = st.slider("Quantidade de itens no ranking", 5, 30, 12, key="historical_rank_limit")
@@ -786,6 +813,11 @@ def main() -> None:
         f"{len(filtered):,} registros exibidos de {len(dataframe):,} | "
         f"{dataframe[DATE_COLUMN].min():%d/%m/%Y} a {dataframe[DATE_COLUMN].max():%d/%m/%Y}"
     )
+
+    if len(filtered) > MAX_AGGREGATION_ROWS:
+        st.caption(
+            "Modo performance ativo: os gráficos e rankings foram resumidos para manter a navegação responsiva."
+        )
 
     render_overview(filtered)
     render_historical_analysis(filtered)
