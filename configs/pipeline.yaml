@@ -1,0 +1,171 @@
+# configurações do pipeline de previsão de vendas
+# determina quais etapas do pipeline serão executadas e suas configurações
+
+# etapas do pipeline
+run_validation: true
+run_profiler: true
+run_preprocessing: true
+run_feature_engineering: true
+run_training: true
+run_explainability: true
+run_export: true
+run_monitoring: true
+
+# configurações de cada etapa do pipeline
+preprocessing:
+  
+  # configurações de validação de dados
+  validation:
+    enabled: true
+    config_file: configs/validation.yaml
+  
+  # configurações de limpeza de dados
+  cleaning:
+    remove_empty_rows: true
+    remove_duplicate_rows: true
+    normalize_column_names: true
+    normalize_string_values: true
+  
+  # configurações de tratamento de valores ausentes
+  missing:
+    numeric_strategy: median
+    categorical_strategy: mode
+    datetime_strategy: keep
+    constant_value: null
+  
+  # configurações de datas
+  datetime:
+    create_year: true
+    create_month: true
+    create_quarter: true
+    create_semester: true
+    create_week: true
+    create_day: true
+    create_day_of_week: true
+    create_is_weekend: true
+    create_is_month_start: true
+    create_is_month_end: true
+  
+  # configurações de agregação de dados
+  aggregation:
+    
+    # configurações de agregação de dados por nível de granularidade
+    group_by:
+      - DATA
+      - COD CLIENTE
+      - COD ITEM
+    
+    # configurações de métricas a serem calculadas durante a agregação
+    metrics:
+      VOLUME: sum
+      VALOR: sum
+  
+  # configurações das features do projeto
+  feature_engineering:
+    
+    # configurações de lag
+    lag_features:
+      
+      # status da feature
+      enabled: true
+
+      # coluna de data do schema
+      date_column: DATA
+
+      # colunas alvo para criação de lags
+      target_columns:
+        - VOLUME
+        - VALOR
+
+      # níveis de granularidade para criação de lags
+      group_levels:
+        - ["COD CLIENTE", "COD ITEM"]
+        - ["COD ITEM"]
+
+      # lags a serem criados
+      lags:
+        - 1
+        - 7
+        - 14
+        - 28
+    
+
+    # configurações de features temporais
+    temporal_features:
+
+      # status da feature
+      enabled: true
+
+      # coluna de data do schema
+      date_column: DATA
+
+      # features a serem criadas
+      create_business_day: true
+      create_holiday: true
+      create_holiday_distance: true
+      create_days_to_month_end: true
+      create_cyclical_features: true
+    
+    # configurações de features de rolling
+    rolling_features:
+
+      # status da feature
+      enabled: true
+
+      # coluna de data do schema
+      date_column: DATA
+
+      # colunas alvo para criação de rolling
+      target_columns:
+        - VOLUME
+        - VALOR
+
+      # níveis de granularidade para criação de rolling
+      group_levels:
+        - ["COD CLIENTE", "COD ITEM"]
+        - ["COD ITEM"]
+
+      # janelas de rolling a serem criadas
+      windows:
+        - 3
+        - 6
+        - 9
+        - 12
+    
+    # configurações de features de tendência
+    trend_features:
+
+      # status da feature
+      enabled: true
+
+      # coluna de data do schema
+      date_column: DATA
+
+      # colunas alvo para criação de tendência
+      target_columns:
+        - VOLUME
+        - VALOR
+
+      # níveis de granularidade para criação de tendência
+      group_levels:
+        - ["COD CLIENTE", "COD ITEM"]
+        - ["COD ITEM"]
+    
+    # configurações de features de negócios
+    business_features:
+
+      # status da feature
+      enabled: true
+
+      # coluna de data do schema
+      date_column: DATA
+
+      # colunas alvo para criação de features de negócios
+      target_columns:
+        - VOLUME
+        - VALOR
+
+      # níveis de granularidade para criação de features de negócios
+      group_levels:
+        - ["COD CLIENTE", "COD ITEM"]
+        - ["COD ITEM"]

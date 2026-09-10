@@ -1,0 +1,21 @@
+# configurações de previsão para o projeto de previsão de vendas
+# determina colunas alvo, horizonte de previsão, tamanho dos conjuntos de treino, validação e teste, e semente aleatória
+
+# colunas alvo para a previsão
+targets:
+  - VOLUME
+  - VALOR
+
+# horizonte de previsão (em meses)
+forecast_horizon:
+  minimum: 1
+  maximum: 12
+
+# tamanho dos conjuntos de treino, validação e teste
+validation:
+  train_size: 0.70
+  validation_size: 0.15
+  test_size: 0.15
+
+# semente aleatória para reprodutibilidade dos resultados
+random_seed: 42

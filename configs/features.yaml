@@ -1,0 +1,42 @@
+# configurações de features para o projeto
+# habilita ou desabilita a criação de features para o projeto
+
+# feature temporal
+temporal:
+  enabled: true
+
+# feature de lag
+lag:
+  enabled: true
+  periods:
+    - 1
+    - 2
+    - 3
+    - 6
+    - 12
+
+# feature de rolling
+rolling:
+  enabled: true
+  windows:
+    - 3
+    - 6
+    - 9
+    - 12
+
+# feature de tendência
+trend:
+  enabled: true
+
+# feature de negócios
+business:
+  enabled: true
+
+# feature de feriados
+holidays:
+  enabled: true
+
+# feature de seleção de features
+selection:
+  enabled: true
+  features: [] # se vazio, seleciona todas as features

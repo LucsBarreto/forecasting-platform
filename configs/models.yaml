@@ -1,0 +1,29 @@
+# configurações de modelos para o projeto de previsão de vendas
+# determina quais modelos serão utilizados, se o AutoML será habilitado e qual métrica de avaliação será utilizada
+
+# habilita ou desabilita o AutoML para seleção automática de modelos
+automl:
+  enabled: false
+
+# lista de modelos disponíveis para o projeto, pode ser habilitado ou desabilitado individualmente
+models:
+  lightgbm:
+    enabled: true
+  linear_regression:
+    enabled: true
+  random_forest:
+    enabled: false
+  xgboost:
+    enabled: false  
+  catboost:
+    enabled: true
+  prophet:
+    enabled: false
+  sarima:
+    enabled: false
+  baseline:
+    enabled: true
+
+# lista de metricas de avaliação disponíveis para o projeto, pode ser habilitado ou desabilitado individualmente
+evaluation:
+  metric: mape

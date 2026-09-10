@@ -1,0 +1,88 @@
+[tool.poetry]
+name = "forecast-platform"
+version = "0.1.0"
+description = "end-to-end demand forecasting platform with machine learning and mlops"
+authors = ["Lucas lucasbarreto1103@gmail.com"]
+license = "MIT"
+readme = "README.MD"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.13,<3.15"
+
+# core
+pandas = ">=2.3,<3"
+numpy = ">=2.3,<3"
+pyarrow = ">=21,<22"
+openpyxl = ">=3.1,<4"
+pyxlsb = ">=1,<2"
+joblib = ">=1.4,<2"
+
+# configuration
+pydantic = ">=2.11,<3"
+pydantic-settings = ">=2.10,<3"
+PyYAML = ">=6,<7"
+
+# machine learning
+scikit-learn = ">=1.7,<2"
+xgboost = ">=3,<4"
+lightgbm = ">=4.6,<5"
+catboost = ">=1.2,<2"
+statsmodels = ">=0.14,<1"
+prophet = ">=1.1,<2"
+optuna = ">=4.5,<5"
+
+# forecasting
+mlforecast = ">=1,<2"
+
+# visualization
+matplotlib = ">=3.10,<4"
+plotly = ">=6.3,<7"
+
+# dashboard
+streamlit = ">=1.48,<2"
+
+# logging
+loguru = ">=0.7,<1"
+
+[tool.poetry.group.dev.dependencies]
+
+pytest = "^8.4"
+pytest-cov = "^7.0"
+
+black = "^25.1"
+ruff = "^0.12"
+
+mypy = "^1.17"
+
+pre-commit = "^4.3"
+
+[tool.black]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "UP",
+    "B",
+    "SIM"
+]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,81 @@
+# configurações de dados para o projeto de previsão de vendas
+# determina colunas obrigatórias, schema de dados, granularidade e período mínimo de histórico
+
+# pasta de entrada de dados
+input_path: load_bases
+
+# pasta de saída de dados
+output_path: outputs
+
+# pasta de monitoramento de execuções
+runs_folder: runs
+
+# padrão de arquivos de entrada
+file_pattern: "*.xlsb"
+
+# colunas obrigatórias no arquivo de entrada
+required_columns:
+  - ANO
+  - MES
+  - DATA
+  - FILIAL DESTINO
+  - FILIAL ORIGEM
+  - REGIONAL
+  - UF
+  - COD CLIENTE
+  - NOME CLIENTE
+  - COD ITEM
+  - PRODUTO
+  - MARCA
+  - CATEGORIA
+  - SUBCANAL GTM
+  - CANAL GTM
+  - ATENDIMENTO
+  - VOLUME
+  - VALOR
+
+# coluna de data para o projeto
+date_column: DATA
+
+# periodo minimo de histórico necessário para o projeto (em anos)
+history:
+  minimum_years: 2
+
+# colunas de granularidade para o projeto
+granularity:
+  - DATA
+  - ANO
+  - MES
+  - FILIAL DESTINO
+  - FILIAL ORIGEM
+  - UF
+  - COD ITEM
+  - COD CLIENTE
+  - MARCA
+  - CATEGORIA
+  - SUBCANAL GTM
+  - CANAL GTM
+  - ATENDIMENTO
+
+# definição do schema de dados para o projeto e tipagem das colunas
+schema:
+  dtypes:
+    ANO: int64
+    MES: string
+    DATA: datetime64[ns]
+    FILIAL DESTINO: string
+    FILIAL ORIGEM: string
+    REGIONAL: string
+    UF: string
+    COD CLIENTE: string
+    NOME CLIENTE: string
+    COD ITEM: string
+    PRODUTO: string
+    MARCA: string
+    CATEGORIA: string
+    SUBCANAL GTM: string
+    CANAL GTM: string
+    ATENDIMENTO: string
+    VOLUME: int64
+    VALOR: float64
+

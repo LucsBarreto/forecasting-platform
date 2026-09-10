@@ -1,0 +1,21 @@
+# configurações de logging para o projeto de previsão de vendas
+# determina nível de log, se será exibido no console, se será gravado em arquivo e o padrão de rotação do arquivo de log
+
+# nível de log
+# niveis disponiveis: DEBUG, INFO, WARNING, ERROR, CRITICAL
+level: INFO
+
+# exibe logs no console
+console: true
+
+# grava logs em arquivo
+file: true
+
+# pasta de saída para os arquivos de log
+directory: logs
+
+# nome do arquivo de log
+filename: forecasting.log
+
+# padrão de rotação do arquivo de log
+rotation: daily

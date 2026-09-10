@@ -1,0 +1,113 @@
+# configurações de validação de dados
+# determina quais validações serão aplicadas aos dados de entrada e suas ações correspondentes
+
+# dados duplicados
+duplicate:
+  
+  # status da validação
+  enabled: true
+
+  # ação a ser tomada em caso de duplicatas
+  action: remove
+
+# datas futuras no dataset
+future_date:
+  
+  # status da validação
+  enabled: true
+
+  # coluna de data do schema
+  column: DATA
+
+  # permitir que a data atual seja considerada válida
+  allow_today: true
+
+  # ação a ser tomada em caso de datas futuras
+  action: remove
+
+# validação de valores nulos no volume
+zero_volume:
+
+  # status da validação
+  enabled: true
+
+  # coluna de volume do schema
+  column: VOLUME
+
+  # ação a ser tomada em caso de valores nulos no volume
+  action: remove
+
+# validação de valores nulos no valor
+zero_value:
+
+  # status da validação
+  enabled: true
+
+  # coluna de valor do schema
+  column: VALOR
+
+  # ação a ser tomada em caso de valores nulos no valor
+  action: remove
+
+# validação de vendas negativas
+negative_sales:
+
+  # status da validação
+  enabled: true
+
+  # coluna de valor do schema
+  column: VALOR
+
+  # ação a ser tomada em caso de vendas negativas
+  action: warn
+
+# validação de devoluções positivas
+positive_return:
+
+  # status da validação
+  enabled: false
+
+  # coluna de devolução do schema
+  column: DEVOLUCAO
+
+  # ação a ser tomada em caso de devoluções positivas
+  action: warn
+
+# validação de clientes nulos
+null_customer:
+
+  # status da validação
+  enabled: true
+
+  # coluna de cliente do schema
+  column: COD CLIENTE
+
+  # ação a ser tomada em caso de clientes nulos
+  action: remove
+
+# validação de produtos nulos
+null_product:
+
+  # status da validação
+  enabled: true
+
+  # coluna de produto do schema
+  column: COD ITEM
+
+  # ação a ser tomada em caso de produtos nulos
+  action: remove
+
+# validação de histórico mínimo
+minimum_history:
+
+  # status da validação
+  enabled: true
+
+  # coluna de data do schema
+  column: DATA
+
+  # período mínimo de histórico necessário para o projeto (em anos)
+  minimum_years: 2
+
+  # ação a ser tomada em caso de histórico insuficiente
+  action: warn
