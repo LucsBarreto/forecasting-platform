@@ -3,7 +3,7 @@
 
 # habilita ou desabilita o AutoML para seleção automática de modelos
 automl:
-  enabled: false
+  enabled: true
 
 # lista de modelos disponíveis para o projeto, pode ser habilitado ou desabilitado individualmente
 models:
