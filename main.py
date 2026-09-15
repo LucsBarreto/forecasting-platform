@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from src.config import settings
 from src.core.utils.output_manager import OutputManager
 from src.export.forecast_exporter import ForecastExporter
@@ -291,6 +293,34 @@ def _create_predict_pipeline() -> PredictPipeline:
     )
 
 
+def _orchestrate_future_forecast(
+    predict_pipeline: PredictPipeline,
+    model: Any,
+    history_frame: pd.DataFrame,
+    selected_features: list[str],
+    available_features: list[str] | None = None,
+    horizon: int = 1,
+    target_column: str = "target",
+    time_column: str = "date",
+) -> Any:
+    """
+    Composição mínima do entrypoint para o contrato de forecast futuro.
+
+    O papel de main.py continua sendo apenas compor a chamada ao
+    pipeline de predição, que mantém o detalhe de execução do contrato
+    futuro internamente.
+    """
+    return predict_pipeline.run_future_forecast(
+        model=model,
+        history_frame=history_frame,
+        selected_features=selected_features,
+        available_features=available_features,
+        horizon=horizon,
+        target_column=target_column,
+        time_column=time_column,
+    )
+
+
 def _save_metrics(
     output_manager: OutputManager,
     metrics: dict[str, float],
@@ -333,13 +363,35 @@ def _save_metrics(
     return output_path
 
 
+def _build_future_date_matrix(
+    test_data: Any,
+    forecast_horizon: int,
+) -> list[pd.Timestamp]:
+    """constrói uma matriz de datas futuras mensais a partir do último registro do teste."""
+
+    import pandas as pd
+
+    last_date = pd.to_datetime(
+        test_data[settings.data.date_column].max(),
+    )
+
+    start = last_date + pd.offsets.MonthBegin(1)
+    future_dates = pd.date_range(
+        start=start,
+        periods=forecast_horizon,
+        freq="MS",
+    )
+
+    return list(future_dates)
+
+
 def _save_forecasts(
     output_manager: OutputManager,
     test_data: Any,
     predictions: dict[str, Any],
-) -> Path:
+) -> tuple[Path, Path]:
     """
-    salva as previsões do período de teste com suas respectivas datas.
+    salva o arquivo de avaliação/teste e também o arquivo futuro de previsão.
 
     parameters
     ----------
@@ -354,13 +406,13 @@ def _save_forecasts(
 
     returns
     -------
-    Path
-        caminho para o arquivo de previsões gerado.
+    tuple[path, path]
+        caminhos dos arquivos de teste e de previsões futuras.
     """
 
     import pandas as pd
 
-    forecast = pd.DataFrame(
+    test_forecast = pd.DataFrame(
         {
             settings.data.date_column: test_data[
                 settings.data.date_column
@@ -371,9 +423,39 @@ def _save_forecasts(
             },
         }
     )
-    return ForecastExporter(
+
+    test_path = ForecastExporter(
         output_directory=output_manager.get_forecasts_dir(),
-    ).export_csv(forecast)
+    ).export_csv(
+        test_forecast,
+        filename="test_forecast.csv",
+    )
+
+    max_horizon = int(settings.forecast.forecast_horizon.maximum)
+    future_dates = _build_future_date_matrix(
+        test_data,
+        max_horizon,
+    )
+
+    future_forecast = pd.DataFrame(
+        {
+            settings.data.date_column: future_dates,
+        }
+    )
+
+    for model_name, prediction in predictions.items():
+        future_forecast[model_name] = float(
+            prediction.to_numpy()[-1]
+        )
+
+    future_path = ForecastExporter(
+        output_directory=output_manager.get_forecasts_dir(),
+    ).export_csv(
+        future_forecast,
+        filename="future_forecast.csv",
+    )
+
+    return test_path, future_path
 
 
 if __name__ == "__main__":

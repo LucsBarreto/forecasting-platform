@@ -1,11 +1,15 @@
 [tool.poetry]
-name = "forecast-platform"
+name = "forecasting-platform"
 version = "0.1.0"
 description = "end-to-end demand forecasting platform with machine learning and mlops"
 authors = ["Lucas lucasbarreto1103@gmail.com"]
 license = "MIT"
 readme = "README.MD"
 packages = [{ include = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
 python = ">=3.13,<3.15"
@@ -41,6 +45,10 @@ plotly = ">=6.3,<7"
 
 # dashboard
 streamlit = ">=1.48,<2"
+
+# api
+fastapi = ">=0.115,<1"
+uvicorn = ">=0.34,<1"
 
 # logging
 loguru = ">=0.7,<1"

@@ -18,4 +18,6 @@ mlforecast>=1,<2
 matplotlib>=3.10,<4
 plotly>=6.3,<7
 streamlit>=1.48,<2
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
 loguru>=0.7,<1
