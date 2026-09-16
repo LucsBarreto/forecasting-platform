@@ -1,209 +1,114 @@
 # forecasting-platform
 
-Plataforma modular de previsão comercial com ingestão, validação, preprocessamento, engenharia de features, treinamento temporal, avaliação de modelos, exportação de artefatos e painel analítico em Streamlit.
+Plataforma modular de previsao comercial com ingestao, validacao, engenharia de features, treinamento temporal, forecast futuro, exportacao auditavel e consulta HTTP de artefatos.
 
-## Visão geral
+## Estado atual
 
-A solução foi desenhada para operar como um pipeline de previsão orientado a negócio, com foco em dados de vendas, volume e valor por cliente, produto, canal, filial e período. A arquitetura separa claramente:
+O projeto possui um pipeline de machine learning separado de uma camada FastAPI de consulta. A API le artefatos ja produzidos e nao executa treinamento, selecao de modelos ou geracao de forecast.
 
-- entrada e contrato de dados
-- validação e qualidade
-- preprocessamento e feature engineering
-- treinamento e comparação de modelos
-- execução de previsões
-- exportação de artefatos
-- consumo em dashboard executivo
-
-A lógica central segue o fluxo:
-
-fonte -> validação -> preprocessamento -> feature engineering -> split temporal -> treinamento -> avaliação -> previsão -> exportação -> dashboard
-
-## Objetivo do projeto
-
-O projeto permite:
-
-- ingerir bases históricas de vendas em CSV, Excel e Parquet
-- validar qualidade e consistência dos dados de entrada
-- preparar features temporais e de contexto comercial
-- treinar múltiplos modelos e comparar desempenho
-- gerar previsões para horizonte futuro
-- materializar artefatos em diretórios de execução
-- disponibilizar o resultado em um painel de observabilidade
-
-## Estrutura principal
+Evidencia da ultima auditoria tecnica:
 
 ```text
-forecasting-platform/
-├── app.py
-│   └── dashboard Streamlit para exploração histórica e consumo de previsões.
-├── main.py
-│   └── ponto de entrada principal do pipeline end-to-end.
-├── requirements.txt
-│   └── dependências do ambiente de execução.
-├── pyproject.toml
-│   └── metadados do projeto e configuração de ferramentas.
-├── configs/
-│   ├── data.yaml
-│   │   └── contrato oficial do schema de entradas e caminhos.
-│   ├── features.yaml
-│   │   └── configuração de features temporais e de negócio.
-│   ├── forecast.yaml
-│   │   └── horizonte, seed e estratégia de split temporal.
-│   ├── models.yaml
-│   │   └── modelos habilitados e regras de AutoML.
-│   ├── pipeline.yaml
-│   │   └── etapas e ordem de execução do pipeline.
-│   ├── validation.yaml
-│   │   └── regras de qualidade e integridade dos dados.
-│   ├── logging.yaml
-│   │   └── configuração de logs do runtime.
-│   ├── holidays.json
-│   │   └── calendário de feriados e regras de influência sazonal.
-│   └── holidays.yaml
-│       └── variação de calendário utilizada pelo projeto.
-├── src/
-│   ├── config/
-│   │   └── carregadores de YAML, contratos Pydantic e settings globais.
-│   ├── core/
-│   │   └── utilidades compartilhadas, enums, constantes e exceções.
-│   ├── data_loader/
-│   │   └── descoberta e leitura de fontes de dados.
-│   ├── data_sources/
-│   │   └── adaptadores para csv, excel, parquet, SQL e fábrica de origem.
-│   ├── data_validation/
-│   │   └── regras de validação, relatórios e execução das verificações.
-│   ├── feature_engineering/
-│   │   └── geração de features temporais e de calendário.
-│   ├── feature_selection/
-│   │   └── seleção de variáveis relevantes.
-│   ├── ml/
-│   │   ├── evaluation/
-│   │   │   └── métricas e comparação de modelos.
-│   │   ├── forecast/
-│   │   │   └── previsão e output final.
-│   │   ├── models/
-│   │   │   └── modelos, adaptadores e baseline.
-│   │   ├── monitoring/
-│   │   │   └── observabilidade de execução.
-│   │   └── training/
-│   │       └── treinamento, split temporal e seleção de modelos.
-│   ├── pipelines/
-│   │   └── train, evaluate e predict pipelines.
-│   ├── preprocessing/
-│   │   └── limpeza, tipagem e transformação dos dados.
-│   ├── schemas/
-│   │   └── contratos de schema para a camada de dados.
-│   └── visualization/
-│       └── gráficos e relatórios de análise.
-├── tests/
-│   └── suíte de regressão para validação do comportamento dos módulos.
-├── outputs/
-│   └── runs/
-│       └── diretórios de execução com metadata, métricas e previsões.
-├── forecasting-platform-ops/
-│   └── scripts de readiness e smoke checks operacionais.
-├── docs/
-│   └── material técnico, arquitetura e roadmap de evolução.
-└── venv_forecast/
-    └── ambiente virtual do projeto para execução local e testes.
+872 passed, 1 warning
 ```
+
+O warning restante vem da combinacao instalada de `Starlette/TestClient` e `httpx` no ambiente virtual.
+
+## Fluxo principal
+
+```text
+entrada de dados
+    -> validacao e schema
+    -> preprocessamento
+    -> feature engineering
+    -> split temporal
+    -> backtesting
+    -> selecao do modelo vencedor
+    -> treinamento final
+    -> features futuras
+    -> forecast futuro
+    -> exportacao CSV + metadata
+    -> consulta FastAPI / dashboard
+```
+
+## Componentes principais
+
+- `main.py`: ponto de composicao do pipeline principal.
+- `app_streamlit.py`: dashboard Streamlit para consulta e visualizacao.
+- `src/config/`: carregamento dos contratos YAML e configuracoes Pydantic.
+- `src/data_sources/`: adaptadores CSV, Excel, Parquet e SQL.
+- `src/data_validation/`: regras e relatorios de qualidade.
+- `src/preprocessing/`: limpeza, tipagem e transformacao.
+- `src/feature_engineering/`: features temporais e de negocio.
+- `src/ml/training/`: backtesting, selecao e treinamento final.
+- `src/ml/forecast/`: contratos de forecast futuro e resultado final.
+- `src/pipelines/`: pipelines de treino, avaliacao e predicao.
+- `src/export/`: materializacao de forecasts e modelos.
+- `src/api/`: API FastAPI para consulta de runs e artefatos.
+- `forecasting-platform-ops/`: readiness e smoke checks operacionais.
+- `tests/`: suite de regressao do projeto.
 
 ## Contrato de dados
 
-A fonte oficial de schema é [configs/data.yaml](configs/data.yaml). O contrato exige que as colunas abaixo existam no input:
+A fonte oficial e [configs/data.yaml](configs/data.yaml). As colunas obrigatorias sao:
 
-- ANO
-- MES
-- DATA
-- FILIAL DESTINO
-- FILIAL ORIGEM
-- REGIONAL
-- UF
-- COD CLIENTE
-- NOME CLIENTE
-- COD ITEM
-- PRODUTO
-- MARCA
-- CATEGORIA
-- SUBCANAL GTM
-- CANAL GTM
-- ATENDIMENTO
-- VOLUME
-- VALOR
+```text
+ANO, MES, DATA, FILIAL DESTINO, FILIAL ORIGEM, REGIONAL, UF,
+COD CLIENTE, NOME CLIENTE, COD ITEM, PRODUTO, MARCA, CATEGORIA,
+SUBCANAL GTM, CANAL GTM, ATENDIMENTO, VOLUME, VALOR
+```
 
-A coluna DATA funciona como eixo temporal. VOLUME e VALOR são as métricas principais. O projeto não realiza mapeamento de alias automático; o contrato precisa ser respeitado para evitar inconsistências.
+`DATA` e o eixo temporal. `VOLUME` e `VALOR` sao os targets principais. O contrato nao aplica aliases automaticos: bases de entrada devem respeitar os nomes definidos no schema.
 
-## Requisitos e execução
+## Requisitos
 
-### Ambiente recomendado
+- Python `>=3.13,<3.15`, conforme `pyproject.toml`.
+- Ambiente virtual recomendado: `venv_forecast`.
+- Dependencias principais: pandas, numpy, PyArrow, scikit-learn, CatBoost, LightGBM, XGBoost, FastAPI e Streamlit.
 
-- Python 3.11+ ou 3.12+, com ambiente equivalente ao usado no projeto
-- ambiente virtual isolado para dependências
+## Instalacao
 
-### Instalação
+```powershell
+.\venv_forecast\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Para criar o ambiente:
 
 ```powershell
 python -m venv venv_forecast
 .\venv_forecast\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-### Execução do pipeline
+## Execucao
+
+### Pipeline
 
 ```powershell
 .\venv_forecast\Scripts\python.exe main.py
 ```
 
-### Execução do dashboard
+### Dashboard
 
 ```powershell
-.\venv_forecast\Scripts\python.exe -m streamlit run app.py
+.\venv_forecast\Scripts\python.exe -m streamlit run app_streamlit.py
 ```
 
-## Configuração por módulo
+### API FastAPI
 
-- [configs/data.yaml](configs/data.yaml): contrato de dados, paths, schema e extensões aceitas
-- [configs/features.yaml](configs/features.yaml): ativação de feature engineering temporal e de negócio
-- [configs/forecast.yaml](configs/forecast.yaml): horizonte, alvo, split e parâmetros de forecast
-- [configs/models.yaml](configs/models.yaml): modelos disponíveis e regras de automação
-- [configs/pipeline.yaml](configs/pipeline.yaml): sequência de etapas do pipeline
-- [configs/validation.yaml](configs/validation.yaml): regras de qualidade e validação
-- [configs/logging.yaml](configs/logging.yaml): nível e canal de logs
-- [configs/holidays.json](configs/holidays.json): feriados e contexto sazonal
+A aplicacao e criada por `src.api.app:create_app`:
 
-## Arquitetura do runtime
+```powershell
+.\venv_forecast\Scripts\python.exe -m uvicorn src.api.app:create_app --factory --reload --host 127.0.0.1 --port 8000
+```
 
-A camada de configuração centraliza regras de negócio e comportamento do pipeline. Em tempo de execução, as classes de `settings`, loaders e modelos consomem esse contrato e transformam a entrada em um fluxo previsível.
+Documentacao interativa:
 
-As responsabilidades principais são:
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/openapi.json`
 
-- [src/config/settings.py](src/config/settings.py): objeto central de configuração do runtime
-- [src/data_sources/factory.py](src/data_sources/factory.py): criação da fonte correta conforme a extensão do arquivo
-- [src/data_validation/validator.py](src/data_validation/validator.py): execução das regras de qualidade
-- [src/preprocessing/preprocessor.py](src/preprocessing/preprocessor.py): normalização e limpeza dos dados
-- [src/feature_engineering/temporal.py](src/feature_engineering/temporal.py): geração de features temporais e calendárias
-- [src/ml/training/training_manager.py](src/ml/training/training_manager.py): orquestração do treinamento
-- [src/ml/forecast/forecast_manager.py](src/ml/forecast/forecast_manager.py): execução de prerredições e exportação
-- [src/core/utils/output_manager.py](src/core/utils/output_manager.py): criação de execuções e organização de artefatos
+A implementacao atual nao usa prefixo `/api/v1`.
 
-## Artefatos produzidos
-
-Cada execução gera uma estrutura em [outputs/runs](outputs/runs) com:
-
-- metadata.json: resumo da execução e contexto da run
-- metrics/metrics.json: resultados por modelo e métricas avaliadas
-- forecasts/: saídas previstas por modelo e alvo
-- models/: modelos treinados serializados, quando aplicável
-- logs/: logs e rastreabilidade operacional
-- reports/: relatórios e resumos de execução
-
-Esses artefatos são o ponto de integração entre backend e dashboard.
-
-## API FastAPI
-
-A camada HTTP está em `src/api` e consulta somente artefatos já materializados.
-Ela não executa treinamento, seleção de modelos ou geração de forecast.
-
-Contratos disponíveis:
+## API disponivel
 
 ```text
 GET /health
@@ -215,53 +120,122 @@ GET /runs/{run_id}/forecasts/{target}
 GET /runs/{run_id}/forecasts/{target}/data
 ```
 
-O endpoint de dados suporta paginação por `offset` e `limit`, com ordenação
-cronológica e limite máximo de 1000 registros. Consulte o
-[guia de utilização da API](docs/API_USAGE_GUIDE.md) e o
-[relatório de auditoria técnica](docs/RELATORIO_AUDITORIA_TECNICA_2026-09-15.md)
-para contratos, riscos e próximos passos.
+A rota de dados aceita `offset` e `limit`:
 
-## Manutenção e boas práticas
+```text
+GET /runs/RUN_20260911_090311/forecasts/VOLUME/data?offset=0&limit=100
+```
 
-- manter o contrato em [configs/data.yaml](configs/data.yaml) como fonte única de verdade
-- validar mudanças de schema em todos os módulos sensíveis antes de executar pipeline completo
-- preservar o split temporal e o alinhamento entre treino e validação
-- manter a documentação técnica sincronizada com o código
-- garantir que os artefatos de execução sejam reprodutíveis e rastreáveis
-- evitar que a camada de dashboard reproduza a lógica do backend em vez de apenas consumir resultados
+Regras atuais:
 
-## Como utilizar com outras bases
+- ordenacao cronologica crescente por `date`;
+- `offset` padrao igual a `0`;
+- `limit` padrao igual a `100`;
+- limite maximo igual a `1000`;
+- parametros invalidos retornam `422`;
+- run, target ou artefato inexistente retornam `404`;
+- CSV e Parquet sao lidos por `ForecastArtifactReader`;
+- a API nao expoe caminhos absolutos do filesystem.
 
-A plataforma foi projetada para ser reutilizável com outras bases, desde que o contrato técnico seja compatível. O modelo operacional é simples:
+Consulte [docs/API_USAGE_GUIDE.md](docs/API_USAGE_GUIDE.md) para exemplos de respostas e regras completas.
 
-1. preparar uma nova base no mesmo formato do contrato ou adaptar as colunas do schema
-2. ajustar os caminhos e file pattern em [configs/data.yaml](configs/data.yaml)
-3. verificar se os valores de dimensão e target continuam consistentes
-4. revisar os modelos habilitados em [configs/models.yaml](configs/models.yaml)
-5. executar o pipeline e verificar os artefatos gerados em [outputs/runs](outputs/runs)
-6. consumir o resultado no dashboard sem necessidade de reescrever a UI
+## Artefatos de uma execucao
 
-Se a nova base tiver outra granularidade ou outra natureza operacional, o projeto ainda funciona com adaptação de schema e regras do domain. O ponto crítico é manter a mesma semântica temporal, de cliente, produto e de agregado financeiro.
+As execucoes sao organizadas em `outputs/runs/<run_id>/`:
 
-Para bases muito diferentes, recomenda-se:
+```text
+outputs/runs/<run_id>/
+├── metadata.json
+├── metrics/
+│   └── metrics.json
+├── forecasts/
+│   ├── forecast_*.csv
+│   └── forecast_*.parquet
+├── models/
+├── reports/
+├── explainability/
+└── logs/
+```
 
-- mapear colunas em termos equivalentes aos do contrato
-- verificar se o target continua sendo VOLUME e/ou VALOR
-- revisar feriados, sazonalidade e presença de zero ou faltantes
-- testar a validade do pipeline com uma amostra representativa
+O `ForecastExporter` e o unico ponto responsavel por materializar forecasts. O resultado futuro segue a fronteira:
 
-## Melhorias futuras
+```text
+FutureForecastResult
+    -> ForecastExporter
+    -> forecast.csv + forecast_metadata.json
+```
 
-As melhorias esperadas para evolução do projeto incluem:
+Os metadados devem identificar, conforme o contrato do artefato, `run_id`, target, modelo, horizonte, periodo e metrica final.
 
-- padronização ainda maior do contrato de execução por run
-- catálogo centralizado de execuções e comparações históricas
-- observabilidade com logs estruturados e monitoramento operacional
-- melhoria de performance do dashboard para bases muito grandes
-- suporte a múltiplos targets e cenários concorrentes
-- integração com orquestradores e pipelines automatizados em produção
+## Arquitetura de responsabilidades
 
-## Conclusão
+```text
+Backtester
+    -> BacktestModelSelector
+    -> FinalModelTrainer
+    -> PredictPipeline
+    -> FutureForecastContract
+    -> FutureForecastResult
+    -> ForecastExporter
+    -> artefatos persistidos
+    -> FastAPI / Streamlit
+```
 
-O projeto já está em uma etapa madura de implementação: ele combina arquitetura modular, contrato YAML, pipeline previsível, modelagem temporal e dashboard funcional. O principal diferencial está na combinação de governança de configuração com execução operacional, permitindo evoluir para um ambiente mais robusto e reutilizável em cenários empresariais reais.
+Regras importantes:
 
+- `Backtester` produz evidencia; nao escolhe o modelo.
+- `BacktestModelSelector` seleciona o vencedor com base na evidencia.
+- `FutureForecastContract` nao conhece filesystem.
+- `PredictPipeline` nao persiste artefatos.
+- `main.py` compoe o fluxo, sem concentrar regras de dominio.
+- FastAPI representa artefatos; nao executa ML.
+- O frontend nao deve acessar `outputs/` diretamente.
+
+## Testes e validacao
+
+Executar a suite completa:
+
+```powershell
+.\venv_forecast\Scripts\python.exe -m pytest -q
+```
+
+Executar somente a API:
+
+```powershell
+.\venv_forecast\Scripts\python.exe -m pytest tests/api -q
+```
+
+A suite de API cobre health, runs, metricas, descoberta de forecasts, selecao por target, dados paginados, CSV/Parquet, OpenAPI, erros de artefato e protecao contra path traversal.
+
+## Documentacao tecnica
+
+- [docs/API_USAGE_GUIDE.md](docs/API_USAGE_GUIDE.md): contratos e uso da API.
+- [docs/RELATORIO_AUDITORIA_TECNICA_2026-09-15.md](docs/RELATORIO_AUDITORIA_TECNICA_2026-09-15.md): auditoria, riscos e roadmap.
+- [docs/ARQUITETURA_E_RESUMO_PROJETO.md](docs/ARQUITETURA_E_RESUMO_PROJETO.md): arquitetura do projeto.
+- [docs/DOCUMENTACAO_API_HARDENING.md](docs/DOCUMENTACAO_API_HARDENING.md): validacoes operacionais da API.
+- [docs/DOCUMENTACAO_FORECAST_ARTIFACT_READER.md](docs/DOCUMENTACAO_FORECAST_ARTIFACT_READER.md): leitura limitada de artefatos.
+- [docs/DOCUMENTACAO_FORECAST_SERVICE_COMPOSITION.md](docs/DOCUMENTACAO_FORECAST_SERVICE_COMPOSITION.md): composicao do service.
+- [docs/DOCUMENTACAO_FORECAST_DATA_CONTRACT.md](docs/DOCUMENTACAO_FORECAST_DATA_CONTRACT.md): schema e paginacao.
+- [docs/DOCUMENTACAO_MELHORIAS_FUTURAS.md](docs/DOCUMENTACAO_MELHORIAS_FUTURAS.md): prioridades de evolucao.
+
+## Proximas prioridades
+
+1. Corrigir o warning de compatibilidade do `TestClient/httpx`.
+2. Formalizar schemas de `metadata.json` e `metrics.json`.
+3. Validar uma execucao real end-to-end com artefatos consultaveis.
+4. Definir autenticacao, autorizacao, CORS e limites operacionais.
+5. Substituir heuristica de filename por manifesto oficial de artefatos.
+6. Integrar Next.js somente apos fechar o contrato de consumo do frontend.
+7. Avaliar cursor pagination e particionamento para forecasts muito grandes.
+
+## Limitacoes atuais
+
+Ainda nao fazem parte do contrato:
+
+- disparo de treinamento pela API;
+- disparo de forecast pela API;
+- autenticacao e autorizacao;
+- filtros dimensionais;
+- paginacao por cursor;
+- catalogo enriquecido de modelos e targets;
+- integracao com Next.js.

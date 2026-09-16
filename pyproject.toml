@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "end-to-end demand forecasting platform with machine learning and mlops"
 authors = ["Lucas lucasbarreto1103@gmail.com"]
 license = "MIT"
-readme = "README.MD"
+readme = "README.md"
 packages = [{ include = "src" }]
 
 [build-system]
