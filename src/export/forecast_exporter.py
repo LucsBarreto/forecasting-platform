@@ -4,12 +4,14 @@ utilitários para exportação de previsões.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
 
 from src.core.exceptions.data import DataError
+from src.ml.forecast.future_forecast import FutureForecastResult
 
 
 @dataclass(slots=True)
@@ -46,6 +48,61 @@ class ForecastExporter:
         )
 
         return output_path
+
+    def export_future_result(
+        self,
+        result: FutureForecastResult,
+        filename: str = "future_forecast.csv",
+        metadata: dict | None = None,
+    ) -> Path:
+        """Converte um FutureForecastResult em DataFrame, persiste o CSV e escreve um sidecar de metadados auditáveis."""
+        if not isinstance(result, FutureForecastResult):
+            raise TypeError("result must be a FutureForecastResult.")
+
+        predictions = result.predictions.copy()
+        if not isinstance(predictions, pd.Series):
+            raise TypeError("result.predictions must be a pandas Series.")
+
+        if metadata is not None:
+            if not isinstance(metadata, dict):
+                raise TypeError("metadata must be a dictionary or None.")
+            self._validate_metadata_consistency(result, metadata)
+
+        dataframe = pd.DataFrame(
+            {
+                "prediction": predictions.to_numpy(),
+            },
+            index=predictions.index,
+        )
+
+        exported_path = self.export_csv(dataframe, filename=filename)
+
+        if metadata is not None:
+            metadata_path = self.output_directory / "forecast_metadata.json"
+            self.output_directory.mkdir(parents=True, exist_ok=True)
+            with metadata_path.open(mode="w", encoding="utf-8") as file:
+                json.dump(metadata, file, indent=4, ensure_ascii=False)
+
+        return exported_path
+
+    @staticmethod
+    def _validate_metadata_consistency(
+        result: FutureForecastResult,
+        metadata: dict,
+    ) -> None:
+        """Valida que o sidecar de metadados é consistente com o envelope de resultado do forecast artefact."""
+        if not isinstance(metadata, dict):
+            raise TypeError("metadata must be a dictionary.")
+
+        if metadata.get("horizon") != result.horizon:
+            raise DataError("Forecast metadata is inconsistent with the forecast artifact horizon.")
+
+        if metadata.get("forecast_rows") is not None:
+            if metadata["forecast_rows"] != len(result.predictions):
+                raise DataError("Forecast metadata is inconsistent with the forecast artifact row count.")
+
+        if metadata.get("target") is None:
+            raise DataError("Forecast metadata is inconsistent with the forecast artifact target.")
 
     def export_parquet(
         self,
