@@ -209,13 +209,7 @@ A suite de API cobre health, runs, metricas, descoberta de forecasts, selecao po
 ## Documentacao tecnica
 
 - [docs/API_USAGE_GUIDE.md](docs/API_USAGE_GUIDE.md): contratos e uso da API.
-- [docs/RELATORIO_AUDITORIA_TECNICA_2026-09-15.md](docs/RELATORIO_AUDITORIA_TECNICA_2026-09-15.md): auditoria, riscos e roadmap.
-- [docs/ARQUITETURA_E_RESUMO_PROJETO.md](docs/ARQUITETURA_E_RESUMO_PROJETO.md): arquitetura do projeto.
-- [docs/DOCUMENTACAO_API_HARDENING.md](docs/DOCUMENTACAO_API_HARDENING.md): validacoes operacionais da API.
-- [docs/DOCUMENTACAO_FORECAST_ARTIFACT_READER.md](docs/DOCUMENTACAO_FORECAST_ARTIFACT_READER.md): leitura limitada de artefatos.
-- [docs/DOCUMENTACAO_FORECAST_SERVICE_COMPOSITION.md](docs/DOCUMENTACAO_FORECAST_SERVICE_COMPOSITION.md): composicao do service.
-- [docs/DOCUMENTACAO_FORECAST_DATA_CONTRACT.md](docs/DOCUMENTACAO_FORECAST_DATA_CONTRACT.md): schema e paginacao.
-- [docs/DOCUMENTACAO_MELHORIAS_FUTURAS.md](docs/DOCUMENTACAO_MELHORIAS_FUTURAS.md): prioridades de evolucao.
+- [docs/DOCUMENTACAO_HOLIDAYS_YAML.md](docs/DOCUMENTACAO_HOLIDAYS_YAML.md): contratos e criação relacionados aos feriados.
 
 ## Proximas prioridades
 
