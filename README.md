@@ -45,7 +45,6 @@ entrada de dados
 - `src/pipelines/`: pipelines de treino, avaliacao e predicao.
 - `src/export/`: materializacao de forecasts e modelos.
 - `src/api/`: API FastAPI para consulta de runs e artefatos.
-- `forecasting-platform-ops/`: readiness e smoke checks operacionais.
 - `tests/`: suite de regressao do projeto.
 
 ## Contrato de dados
