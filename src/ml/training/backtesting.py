@@ -10,12 +10,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from statistics import mean, median, pstdev
-from typing import Any, Callable
+from typing import Any
 
 import pandas as pd
 
 from src.feature_selection.selector import FeatureSelector
-from src.ml.evaluation import ModelEvaluator
 
 
 @dataclass(slots=True)
@@ -61,7 +60,6 @@ class Backtester:
         gap: int = 0,
         strategy: str = "expanding",
         feature_selector: FeatureSelector | None = None,
-        evaluator: ModelEvaluator | None = None,
     ) -> None:
         self.dataframe = dataframe.copy()
         self.date_column = date_column
@@ -71,7 +69,6 @@ class Backtester:
         self.gap = gap
         self.strategy = strategy
         self.feature_selector = feature_selector
-        self.evaluator = evaluator
 
         self._validate_inputs()
         self.dataframe = self._prepare_dataframe()
@@ -120,6 +117,18 @@ class Backtester:
             Fold 3 -> 30 train -> 3 validation
         """
         total = len(self.dataframe)
+        required_periods = (
+            self.min_training_history
+            + self.n_folds * self.horizon
+            + self.gap
+        )
+
+        if required_periods > total:
+            raise ValueError(
+                "Not enough periods to build the requested backtest folds. "
+                "Expected capacity is min_training_history + n_folds*horizon + gap."
+            )
+
         folds: list[BacktestFold] = []
 
         for fold_id in range(1, self.n_folds + 1):
@@ -152,51 +161,134 @@ class Backtester:
     def run_fold(
         self,
         fold: BacktestFold,
-        model:
-            Any | None = None,
+        target_column: str,
+        model: Any,
+        evaluator: Any,
     ) -> BacktestFold:
         """
-        executa um fold com seleção de features usando somente o treino do fold.
+        executa um único fold com o contrato mínimo de execução real:
 
-        este desenho não substitui o TemporalSplitter; ele apenas materializa
-        o contrato de backtesting em múltiplas janelas temporais.
+        - aplica feature selection usando somente o treino do fold;
+        - treina o modelo sobre X_train e y_train do fold;
+        - prevê sobre a janela de validação do fold;
+        - envia y_true/y_pred para o avaliador e registra a métrica no fold.
+
+        esta implementação não fecha o backtester completo, mas deixa a
+        fronteira operacional de execução de um fold sem inventar métrica.
         """
-        selected_features = list(fold.train.columns)
+        if not isinstance(target_column, str) or not target_column.strip():
+            raise ValueError("target_column must be a non-empty string.")
+        if target_column not in fold.train.columns:
+            raise ValueError(f"Target column '{target_column}' was not found in training fold.")
+        if target_column not in fold.validation.columns:
+            raise ValueError(f"Target column '{target_column}' was not found in validation fold.")
+        if not hasattr(model, "fit") or not hasattr(model, "predict"):
+            raise TypeError("model must expose fit(X, y) and predict(X) methods.")
+        if not hasattr(evaluator, "evaluate"):
+            raise TypeError("evaluator must expose an evaluate(y_true, y_pred) method.")
+
+        train_features = fold.train.drop(columns=[target_column])
+        validation_features = fold.validation.drop(columns=[target_column])
+
+        selected_train = train_features
         if self.feature_selector is not None:
-            selected_train = self.feature_selector.select(fold.train)
-            selected_features = list(selected_train.columns)
+            selected_train = self.feature_selector.select(train_features)
+
+        selected_features = list(selected_train.columns)
+        X_train = selected_train.copy()
+        y_train = fold.train[target_column].copy()
+
+        fitted_model = model.fit(X_train, y_train)
+
+        selected_validation = validation_features.loc[:, selected_features].copy()
+        y_pred = fitted_model.predict(selected_validation)
+        y_true = fold.validation[target_column].copy()
+
+        metric_result = evaluator.evaluate(y_true, y_pred)
+        metric_name = getattr(evaluator, "metric", "metric")
+        if not isinstance(metric_name, str) or not metric_name.strip():
+            metric_name = "metric"
 
         fold.selected_features = selected_features
+        fold.metrics = {str(metric_name): float(metric_result)}
         return fold
 
     def run(
         self,
-        model_registry: dict[str, Any] | None = None,
-        evaluator: Callable[[pd.Series, pd.Series], float] | None = None,
+        target_column: str,
+        model: Any,
+        evaluator: Any,
     ) -> BacktestResult:
-        """executa o contrato completo de geração, execução e agregação."""
+        """
+        executa todos os folds produzidos pelo contrato de geração e
+        devolve um resultado agregável por fold.
+
+        esta primeira extensão é estritamente operacional:
+        - gera os folds;
+        - executa run_fold em cada janela;
+        - retorna metrics_by_fold e aggregated_metrics.
+
+        a seleção do vencedor continua separada do contrato de execução.
+        """
+        if not isinstance(target_column, str) or not target_column.strip():
+            raise ValueError("target_column must be a non-empty string.")
+        if not hasattr(model, "fit") or not hasattr(model, "predict"):
+            raise TypeError("model must expose fit(X, y) and predict(X) methods.")
+        if not hasattr(evaluator, "evaluate"):
+            raise TypeError("evaluator must expose an evaluate(y_true, y_pred) method.")
+
         folds = self.generate_folds()
         metrics_by_fold: dict[int, dict[str, float]] = {}
 
         for fold in folds:
-            executed_fold = self.run_fold(fold)
-            if evaluator is not None:
-                # manter o contrato simples e serializável para a camada de
-                # comparação de métricas por fold.
-                metrics_by_fold[executed_fold.fold_id] = {
-                    "metric": float(0.0),
-                }
-            else:
-                metrics_by_fold[executed_fold.fold_id] = {
-                    "metric": float(0.0),
-                }
+            executed_fold = self.run_fold(
+                fold,
+                target_column=target_column,
+                model=model,
+                evaluator=evaluator,
+            )
+            metrics_by_fold[executed_fold.fold_id] = executed_fold.metrics
 
         aggregated_metrics = self.aggregate_results(metrics_by_fold)
+
         return BacktestResult(
             folds=folds,
             metrics_by_fold=metrics_by_fold,
             aggregated_metrics=aggregated_metrics,
         )
+
+    def run_models(
+        self,
+        target_column: str,
+        models: dict[str, Any],
+        evaluator: Any,
+    ) -> dict[str, BacktestResult]:
+        """
+        executa o mesmo desenho temporal para cada modelo candidato e
+        devolve um dicionário comparável de BacktestResult por modelo.
+
+        a decisão de vencedor permanece fora deste contrato.
+        """
+        if not isinstance(target_column, str) or not target_column.strip():
+            raise ValueError("target_column must be a non-empty string.")
+        if not isinstance(models, dict) or not models:
+            raise ValueError("models must be a non-empty dictionary of model instances.")
+        if not hasattr(evaluator, "evaluate"):
+            raise TypeError("evaluator must expose an evaluate(y_true, y_pred) method.")
+
+        results: dict[str, BacktestResult] = {}
+        for model_name, model in models.items():
+            if not isinstance(model_name, str) or not model_name.strip():
+                raise ValueError("model names must be non-empty strings.")
+            if not hasattr(model, "fit") or not hasattr(model, "predict"):
+                raise TypeError(f"Model '{model_name}' must expose fit(X, y) and predict(X) methods.")
+            results[model_name] = self.run(
+                target_column=target_column,
+                model=model,
+                evaluator=evaluator,
+            )
+
+        return results
 
     def aggregate_results(
         self,

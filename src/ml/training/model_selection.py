@@ -11,6 +11,51 @@ from src.ml.factory import ModelFactory
 
 
 @dataclass(slots=True)
+class BacktestModelSelector:
+    """
+    seleciona o modelo vencedor a partir de uma estrutura de
+    BacktestResult por candidato, sem entrar na lógica de geração de folds.
+
+    policy
+    -----
+    - aceita um dicionário de nome->BacktestResult;
+    - usa uma métrica explícita e uma direção explícita: minimize|maximize;
+    - retorna o nome do modelo vencedor.
+    """
+
+    metric: str = "metric"
+    objective: str = "minimize"
+
+    def select(self, results: dict[str, object]) -> str:
+        """seleciona o modelo com melhor agregação da métrica informada."""
+        if not isinstance(results, dict) or not results:
+            raise ValueError("results must be a non-empty dictionary of BacktestResult objects.")
+        if not isinstance(self.metric, str) or not self.metric.strip():
+            raise ValueError("metric must be a non-empty string.")
+        if self.objective not in {"minimize", "maximize"}:
+            raise ValueError("objective must be either 'minimize' or 'maximize'.")
+
+        ranked = []
+        for model_name, result in results.items():
+            if not isinstance(model_name, str) or not model_name.strip():
+                raise ValueError("model names must be non-empty strings.")
+            if not hasattr(result, "aggregated_metrics"):
+                raise TypeError("each result must expose aggregated_metrics.")
+            if self.metric not in result.aggregated_metrics:
+                raise ValueError(f"Metric '{self.metric}' was not found in aggregated metrics.")
+
+            value = float(result.aggregated_metrics[self.metric]["mean"])
+            ranked.append((value, model_name))
+
+        if self.objective == "minimize":
+            ranked.sort(key=lambda item: item[0])
+        else:
+            ranked.sort(key=lambda item: item[0], reverse=True)
+
+        return ranked[0][1]
+
+
+@dataclass(slots=True)
 class ModelSelector:
     """
     resolve os modelos que devem participar do treinamento.
