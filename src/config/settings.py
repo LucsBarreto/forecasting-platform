@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from src.core.constants import CONFIGS_DIR
+from src.core.constants import CONFIGS_DIR, PROJECT_ROOT
 
 from .data import DataSettings
 from .features import FeatureSettings
@@ -31,12 +31,21 @@ class Settings(BaseModel):
 _loader = ConfigLoader(CONFIGS_DIR)
 
 
+def _resolve_project_relative_path(value: str) -> str:
+    """normaliza caminhos relativos para o diretório raiz do projeto."""
+
+    path = Path(value)
+    if path.is_absolute():
+        return str(path)
+    return str((PROJECT_ROOT / path).resolve())
+
+
 def load_settings(config_dir: Path = CONFIGS_DIR) -> Settings:
     """carrega os contratos YAML do diretório de configuração."""
 
     loader = ConfigLoader(config_dir)
 
-    return Settings(
+    resolved = Settings(
         data=DataSettings(**loader.load("data.yaml")),
         forecast=ForecastSettings(**loader.load("forecast.yaml")),
         models=ModelSettings(**loader.load("models.yaml")),
@@ -45,6 +54,11 @@ def load_settings(config_dir: Path = CONFIGS_DIR) -> Settings:
         validation=ValidationSettings(**loader.load("validation.yaml")),
         pipeline=PipelineSettings(**loader.load("pipeline.yaml")),
     )
+
+    resolved.data.input_path = _resolve_project_relative_path(resolved.data.input_path)
+    resolved.data.output_path = _resolve_project_relative_path(resolved.data.output_path)
+
+    return resolved
 
 
 settings = load_settings()
