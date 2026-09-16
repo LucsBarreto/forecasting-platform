@@ -143,20 +143,22 @@ class TrainingPipeline(BasePipeline):
                 dataframe,
             )
 
-            X, y = self._prepare_training_data(
-                dataframe,
-                target_column,
-            )
-
             split = self.temporal_splitter.split(
                 dataframe,
             )
 
-            X_train, y_train = self._prepare_split_data(
-                split.train,
-                target_column,
-                X.columns,
+            train_features = split.train.drop(
+                columns=[target_column],
             )
+
+            selected_train = self.feature_selector.select(
+                train_features,
+            )
+
+            X_train = selected_train.copy()
+            y_train = split.train[
+                target_column
+            ].copy()
 
             training_result = self.training_manager.train(
                 X_train,
@@ -176,7 +178,7 @@ class TrainingPipeline(BasePipeline):
                 exported_models=exported_models,
                 validation_data=split.validation.copy(),
                 test_data=split.test.copy(),
-                selected_features=list(X.columns),
+                selected_features=list(X_train.columns),
             )
 
         except Exception as exc:

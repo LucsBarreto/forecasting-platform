@@ -12,8 +12,15 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.exceptions.validation import DataValidationError
 from src.export.forecast_exporter import ForecastExporter
-from src.ml.forecast import Forecaster
+from src.ml.forecast import (
+    Forecaster,
+    FutureFeatureAvailabilityContract,
+    FutureFeatureFrameBuilder,
+    FutureForecastContract,
+    FutureForecastResult,
+)
 
 from .base_pipeline import BasePipeline
 
@@ -71,6 +78,17 @@ class PredictPipeline(BasePipeline):
 
     a exportação das previsões está disponível no modo de modelo único
     quando um forecastexporter está configurado.
+
+    modo futuro:
+
+        run_future_forecast(
+            model=model,
+            history_frame=history,
+            selected_features=[...],
+            available_features=[...],
+            horizon=3,
+        )
+
     """
 
     def __init__(
@@ -78,6 +96,9 @@ class PredictPipeline(BasePipeline):
         forecaster: Forecaster | None = None,
         predictor: Any | None = None,
         forecast_exporter: ForecastExporter | None = None,
+        future_feature_builder: FutureFeatureFrameBuilder | None = None,
+        future_feature_availability_contract: FutureFeatureAvailabilityContract | None = None,
+        future_forecast_contract: FutureForecastContract | None = None,
     ) -> None:
         """
         inicializa o pipeline de predição.
@@ -92,6 +113,15 @@ class PredictPipeline(BasePipeline):
 
         forecast_exporter
             exportador opcional para previsões em csv e parquet.
+
+        future_feature_builder
+            construtor de frame de features futuras.
+
+        future_feature_availability_contract
+            validador de disponibilidade de features futuras.
+
+        future_forecast_contract
+            contrato de previsão futura.
         """
 
         super().__init__()
@@ -99,6 +129,9 @@ class PredictPipeline(BasePipeline):
         self.forecaster = forecaster
         self.predictor = predictor
         self.forecast_exporter = forecast_exporter
+        self.future_feature_builder = future_feature_builder or FutureFeatureFrameBuilder()
+        self.future_feature_availability_contract = future_feature_availability_contract or FutureFeatureAvailabilityContract()
+        self.future_forecast_contract = future_forecast_contract or FutureForecastContract()
 
     @property
     def name(self) -> str:
@@ -267,6 +300,67 @@ class PredictPipeline(BasePipeline):
         except Exception as exc:
             self._log_failure(exc)
             raise
+
+    def run_future_forecast(
+        self,
+        model: Any,
+        history_frame: pd.DataFrame,
+        selected_features: list[str],
+        available_features: list[str] | None = None,
+        horizon: int = 1,
+        target_column: str = "target",
+        time_column: str = "date",
+        predictions: list[float] | pd.Series | None = None,
+    ) -> FutureForecastResult:
+        """
+        Consome o contrato de forecast futuro em forma isolada.
+
+        Este método mantém o `PredictPipeline` como consumidor da nova
+        abstração de forecast futuro, sem abrir o restante do fluxo de
+        produção. Ele valida disponibilidade, organiza o frame futuro e
+        entrega `FutureForecastResult` pela cadeia formal.
+        """
+        if not isinstance(history_frame, pd.DataFrame):
+            raise TypeError("history_frame must be a pandas DataFrame.")
+        if history_frame.empty:
+            raise ValueError("history_frame cannot be empty.")
+        if not isinstance(selected_features, list) or not selected_features:
+            raise ValueError("selected_features must be a non-empty list.")
+        if not isinstance(horizon, int) or horizon <= 0:
+            raise ValueError("horizon must be a positive integer.")
+        if not isinstance(target_column, str) or not target_column.strip():
+            raise ValueError("target_column must be a non-empty string.")
+        if target_column not in history_frame.columns:
+            raise ValueError(f"Target column '{target_column}' was not found in history_frame.")
+        if not isinstance(time_column, str) or not time_column.strip():
+            raise ValueError("time_column must be a non-empty string.")
+        if time_column not in history_frame.columns:
+            raise ValueError(f"Time column '{time_column}' was not found in history_frame.")
+        if model is None:
+            raise DataValidationError("A model is required for future forecasting.")
+
+        available = available_features or selected_features
+        if not isinstance(available, list):
+            raise TypeError("available_features must be a list of strings.")
+
+        self.future_feature_availability_contract.run(
+            selected_features=selected_features,
+            available_features=available,
+        )
+
+        future_frame = self.future_feature_builder.build_recursive(
+            history_frame=history_frame,
+            horizon=horizon,
+            target_column=target_column,
+            predictions=predictions or [],
+            lag_values=[1],
+            rolling_windows=[2],
+        )
+
+        return self.future_forecast_contract.run(
+            future_frame=future_frame,
+            model=model,
+        )
 
     @staticmethod
     def _validate_models(
