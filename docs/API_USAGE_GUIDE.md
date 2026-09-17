@@ -192,16 +192,16 @@ Regras:
 A suíte API cobre as sete fronteiras HTTP, o reader CSV/Parquet, paginação, OpenAPI e hardening:
 
 ```text
-20 passed, 1 warning
+20 passed, 0 warnings
 ```
 
 A suíte completa do projeto, após transformar os diretórios de testes em pacotes para evitar colisões de basenames, apresenta:
 
 ```text
-872 passed, 1 warning
+893 passed, 0 warnings
 ```
 
-O warning atual vem da combinação instalada de `starlette`/`httpx` no `TestClient` e deve ser removido em uma atualização controlada de dependências.
+O warning do `TestClient` foi removido com a dependência suportada `httpx2`.
 
 ## Limites da API atual
 
@@ -216,3 +216,22 @@ Ainda não fazem parte do contrato:
 - dashboard Next.js.
 
 A evolução deve continuar orientada por contratos, testes e artefatos já persistidos.
+
+## Dependencias de teste validadas
+
+O warning anterior do `TestClient` vinha do fallback do Starlette para `httpx`.
+O projeto agora declara `httpx2` para usar o caminho suportado pelo Starlette.
+
+Combinacao validada no ambiente `venv_forecast`:
+
+```text
+FastAPI 0.140.13
+Starlette 1.3.1
+httpx2 2.13.0
+pytest 9.1.1
+```
+
+O `pyproject.toml` e a fonte declarativa principal. O repositorio ainda nao
+possui `poetry.lock` e o executavel Poetry nao esta instalado neste ambiente;
+portanto, a combinacao acima foi registrada a partir do ambiente efetivamente
+validado, sem criar um lockfile manual.
