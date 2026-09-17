@@ -12,6 +12,7 @@ import pandas as pd
 
 from src.core.exceptions.data import DataError
 from src.ml.forecast.future_forecast import FutureForecastResult
+from src.schemas.metadata import MetadataSchema
 
 
 @dataclass(slots=True)
@@ -64,9 +65,8 @@ class ForecastExporter:
             raise TypeError("result.predictions must be a pandas Series.")
 
         if metadata is not None:
-            if not isinstance(metadata, dict):
-                raise TypeError("metadata must be a dictionary or None.")
-            self._validate_metadata_consistency(result, metadata)
+            validated_metadata = MetadataSchema.model_validate(metadata)
+            self._validate_metadata_consistency(result, validated_metadata)
 
         dataframe = pd.DataFrame(
             {
@@ -81,27 +81,29 @@ class ForecastExporter:
             metadata_path = self.output_directory / "forecast_metadata.json"
             self.output_directory.mkdir(parents=True, exist_ok=True)
             with metadata_path.open(mode="w", encoding="utf-8") as file:
-                json.dump(metadata, file, indent=4, ensure_ascii=False)
+                json.dump(
+                    validated_metadata.model_dump(mode="json", exclude_none=True),
+                    file,
+                    indent=4,
+                    ensure_ascii=False,
+                )
 
         return exported_path
 
     @staticmethod
     def _validate_metadata_consistency(
         result: FutureForecastResult,
-        metadata: dict,
+        metadata: MetadataSchema,
     ) -> None:
         """Valida que o sidecar de metadados é consistente com o envelope de resultado do forecast artefact."""
-        if not isinstance(metadata, dict):
-            raise TypeError("metadata must be a dictionary.")
-
-        if metadata.get("horizon") != result.horizon:
+        if metadata.horizon != result.horizon:
             raise DataError("Forecast metadata is inconsistent with the forecast artifact horizon.")
 
-        if metadata.get("forecast_rows") is not None:
-            if metadata["forecast_rows"] != len(result.predictions):
+        if metadata.forecast_rows is not None:
+            if metadata.forecast_rows != len(result.predictions):
                 raise DataError("Forecast metadata is inconsistent with the forecast artifact row count.")
 
-        if metadata.get("target") is None:
+        if metadata.target is None:
             raise DataError("Forecast metadata is inconsistent with the forecast artifact target.")
 
     def export_parquet(
