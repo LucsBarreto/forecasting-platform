@@ -11,6 +11,7 @@ import pytest
 from src.core.exceptions.data import DataError
 from src.export.forecast_exporter import ForecastExporter
 from src.ml.forecast.future_forecast import FutureForecastResult
+from src.schemas.metadata import MetadataSchema
 
 
 @pytest.fixture
@@ -259,12 +260,18 @@ def test_exporter_writes_audit_metadata_sidecar(tmp_path: Path) -> None:
 
     metadata = {
         "run_id": "RUN_20260114_000000",
-        "target": "sales",
+        "target": "VOLUME",
         "model": "LinearModel",
         "horizon": 2,
-        "forecast_start": "2026-01-15",
-        "forecast_end": "2026-01-16",
-        "final_metric": 0.91,
+        "period": {
+            "start": "2026-01-15",
+            "end": "2026-01-16",
+        },
+        "version": "2.0.0",
+        "timestamps": {
+            "started_at": "2026-01-14T00:00:00Z",
+            "finished_at": "2026-01-14T00:10:00Z",
+        },
     }
 
     exported_path = exporter.export_future_result(
@@ -280,13 +287,18 @@ def test_exporter_writes_audit_metadata_sidecar(tmp_path: Path) -> None:
     with metadata_path.open(mode="r", encoding="utf-8") as file:
         saved = json.load(file)
 
+    validated = MetadataSchema.model_validate(saved)
+    assert validated.run_id == "RUN_20260114_000000"
     assert saved["run_id"] == "RUN_20260114_000000"
-    assert saved["target"] == "sales"
+    assert saved["target"] == "VOLUME"
     assert saved["model"] == "LinearModel"
     assert saved["horizon"] == 2
-    assert saved["forecast_start"] == "2026-01-15"
-    assert saved["forecast_end"] == "2026-01-16"
-    assert saved["final_metric"] == 0.91
+    assert saved["period"] == {
+        "start": "2026-01-15",
+        "end": "2026-01-16",
+    }
+    assert saved["version"] == "2.0.0"
+    assert saved["timestamps"]["started_at"] == "2026-01-14T00:00:00Z"
 
 
 def test_exporter_rejects_inconsistent_forecast_metadata(tmp_path: Path) -> None:
@@ -300,12 +312,18 @@ def test_exporter_rejects_inconsistent_forecast_metadata(tmp_path: Path) -> None
 
     metadata = {
         "run_id": "RUN_20260114_000000",
-        "target": "sales",
+        "target": "VOLUME",
         "model": "LinearModel",
         "horizon": 5,
-        "forecast_start": "2026-01-15",
-        "forecast_end": "2026-01-16",
-        "final_metric": 0.91,
+        "period": {
+            "start": "2026-01-15",
+            "end": "2026-01-16",
+        },
+        "version": "2.0.0",
+        "timestamps": {
+            "started_at": "2026-01-14T00:00:00Z",
+            "finished_at": "2026-01-14T00:10:00Z",
+        },
     }
 
     with pytest.raises(DataError, match="Forecast metadata is inconsistent"):
