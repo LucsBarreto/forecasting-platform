@@ -9,10 +9,10 @@ O projeto possui um pipeline de machine learning separado de uma camada FastAPI 
 Evidencia da ultima auditoria tecnica:
 
 ```text
-872 passed, 1 warning
+893 passed, 0 warnings
 ```
 
-O warning restante vem da combinacao instalada de `Starlette/TestClient` e `httpx` no ambiente virtual.
+O `TestClient` usa a dependência suportada `httpx2` no ambiente virtual.
 
 ## Fluxo principal
 
@@ -45,6 +45,7 @@ entrada de dados
 - `src/pipelines/`: pipelines de treino, avaliacao e predicao.
 - `src/export/`: materializacao de forecasts e modelos.
 - `src/api/`: API FastAPI para consulta de runs e artefatos.
+- `forecasting-platform-ops/`: readiness e smoke checks operacionais.
 - `tests/`: suite de regressao do projeto.
 
 ## Contrato de dados
@@ -209,7 +210,13 @@ A suite de API cobre health, runs, metricas, descoberta de forecasts, selecao po
 ## Documentacao tecnica
 
 - [docs/API_USAGE_GUIDE.md](docs/API_USAGE_GUIDE.md): contratos e uso da API.
-- [docs/DOCUMENTACAO_HOLIDAYS_YAML.md](docs/DOCUMENTACAO_HOLIDAYS_YAML.md): contratos e criação relacionados aos feriados.
+- [docs/RELATORIO_AUDITORIA_TECNICA_2026-09-15.md](docs/RELATORIO_AUDITORIA_TECNICA_2026-09-15.md): auditoria, riscos e roadmap.
+- [docs/ARQUITETURA_E_RESUMO_PROJETO.md](docs/ARQUITETURA_E_RESUMO_PROJETO.md): arquitetura do projeto.
+- [docs/DOCUMENTACAO_API_HARDENING.md](docs/DOCUMENTACAO_API_HARDENING.md): validacoes operacionais da API.
+- [docs/DOCUMENTACAO_FORECAST_ARTIFACT_READER.md](docs/DOCUMENTACAO_FORECAST_ARTIFACT_READER.md): leitura limitada de artefatos.
+- [docs/DOCUMENTACAO_FORECAST_SERVICE_COMPOSITION.md](docs/DOCUMENTACAO_FORECAST_SERVICE_COMPOSITION.md): composicao do service.
+- [docs/DOCUMENTACAO_FORECAST_DATA_CONTRACT.md](docs/DOCUMENTACAO_FORECAST_DATA_CONTRACT.md): schema e paginacao.
+- [docs/DOCUMENTACAO_MELHORIAS_FUTURAS.md](docs/DOCUMENTACAO_MELHORIAS_FUTURAS.md): prioridades de evolucao.
 
 ## Proximas prioridades
 
