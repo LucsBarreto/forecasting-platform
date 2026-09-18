@@ -6,8 +6,10 @@ import json
 from pathlib import Path
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from src.config import settings
+from src.schemas.metrics import MetricsSchema
 
 
 class MetricsService:
@@ -24,7 +26,13 @@ class MetricsService:
         if not metrics_path.exists():
             raise HTTPException(status_code=404, detail="metrics not found")
 
-        with metrics_path.open(mode="r", encoding="utf-8") as file:
-            metrics = json.load(file)
+        try:
+            with metrics_path.open(mode="r", encoding="utf-8") as file:
+                metrics = MetricsSchema.model_validate(json.load(file))
+        except (json.JSONDecodeError, OSError, ValidationError):
+            raise HTTPException(status_code=422, detail="metrics artifact is invalid")
 
-        return {"metrics": metrics}
+        if metrics.run_id != run_id:
+            raise HTTPException(status_code=422, detail="metrics artifact run_id is inconsistent")
+
+        return {"metrics": metrics.metrics}
