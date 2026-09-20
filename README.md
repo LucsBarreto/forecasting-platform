@@ -2,7 +2,7 @@
 
 Plataforma modular de previsao comercial com ingestao, validacao, engenharia de features, treinamento temporal, forecast futuro, exportacao auditavel e consulta HTTP de artefatos.
 
-## Estado atual
+## Estado atual:
 
 O projeto possui um pipeline de machine learning separado de uma camada FastAPI de consulta. A API le artefatos ja produzidos e nao executa treinamento, selecao de modelos ou geracao de forecast.
 
