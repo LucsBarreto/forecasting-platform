@@ -11,7 +11,7 @@ import pytest
 from src.core.exceptions.data import DataError
 from src.export.forecast_exporter import ForecastExporter
 from src.ml.forecast.future_forecast import FutureForecastResult
-from src.schemas.metadata import MetadataSchema
+from src.schemas.metadata import MetadataSchema, SingleForecastMetadataSchema
 
 
 @pytest.fixture
@@ -287,7 +287,7 @@ def test_exporter_writes_audit_metadata_sidecar(tmp_path: Path) -> None:
     with metadata_path.open(mode="r", encoding="utf-8") as file:
         saved = json.load(file)
 
-    validated = MetadataSchema.model_validate(saved)
+    validated = SingleForecastMetadataSchema.model_validate(saved)
     assert validated.run_id == "RUN_20260114_000000"
     assert saved["run_id"] == "RUN_20260114_000000"
     assert saved["target"] == "VOLUME"
@@ -299,6 +299,60 @@ def test_exporter_writes_audit_metadata_sidecar(tmp_path: Path) -> None:
     }
     assert saved["version"] == "2.0.0"
     assert saved["timestamps"]["started_at"] == "2026-01-14T00:00:00Z"
+
+
+def test_exporter_writes_multimodel_metadata_sidecar(tmp_path: Path) -> None:
+    exporter = ForecastExporter(output_directory=tmp_path)
+    dataframe = pd.DataFrame(
+        {
+            "DATA": pd.to_datetime(["2026-01-15", "2026-02-01"]),
+            "baseline": [5.0, 5.0],
+            "lightgbm": [10.0, 11.0],
+        }
+    )
+    metadata = {
+        "run_id": "RUN_20260114_000000",
+        "target": "VOLUME",
+        "models": ["baseline", "lightgbm"],
+        "horizon": 2,
+        "period": {"start": "2026-01-15", "end": "2026-02-01"},
+        "version": "2.0.0",
+        "timestamps": {
+            "started_at": "2026-01-14T00:00:00Z",
+            "finished_at": "2026-01-14T00:10:00Z",
+        },
+        "forecast_rows": 2,
+    }
+
+    exported_path = exporter.export_multimodel_forecast(
+        dataframe,
+        metadata=metadata,
+        date_column="DATA",
+    )
+
+    assert exported_path.name == "future_forecast.csv"
+    saved = json.loads((tmp_path / "forecast_metadata.json").read_text(encoding="utf-8"))
+    assert MetadataSchema.model_validate(saved).models == ["baseline", "lightgbm"]
+
+
+def test_exporter_rejects_multimodel_column_mismatch(tmp_path: Path) -> None:
+    exporter = ForecastExporter(output_directory=tmp_path)
+    dataframe = pd.DataFrame({"DATA": ["2026-01-15"], "lightgbm": [10.0]})
+    metadata = {
+        "run_id": "RUN_20260114_000000",
+        "target": "VOLUME",
+        "models": ["catboost"],
+        "horizon": 1,
+        "period": {"start": "2026-01-15", "end": "2026-01-15"},
+        "version": "2.0.0",
+        "timestamps": {
+            "started_at": "2026-01-14T00:00:00Z",
+            "finished_at": "2026-01-14T00:10:00Z",
+        },
+    }
+
+    with pytest.raises(DataError, match="models are inconsistent"):
+        exporter.export_multimodel_forecast(dataframe, metadata=metadata, date_column="DATA")
 
 
 def test_exporter_rejects_inconsistent_forecast_metadata(tmp_path: Path) -> None:
