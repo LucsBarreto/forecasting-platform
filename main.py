@@ -7,6 +7,7 @@ a aplicação de forecasting.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -448,11 +449,30 @@ def _save_forecasts(
             prediction.to_numpy()[-1]
         )
 
+    future_metadata = {
+        "run_id": output_manager.run_id,
+        "target": _resolve_target_column(),
+        "models": list(predictions),
+        "horizon": len(future_forecast),
+        "period": {
+            "start": future_forecast[settings.data.date_column].min(),
+            "end": future_forecast[settings.data.date_column].max(),
+        },
+        "version": "2.0.0",
+        "timestamps": {
+            "started_at": datetime.now(timezone.utc),
+            "finished_at": datetime.now(timezone.utc),
+        },
+        "forecast_rows": len(future_forecast),
+    }
+
     future_path = ForecastExporter(
         output_directory=output_manager.get_forecasts_dir(),
-    ).export_csv(
+    ).export_multimodel_forecast(
         future_forecast,
         filename="future_forecast.csv",
+        metadata=future_metadata,
+        date_column=settings.data.date_column,
     )
 
     return test_path, future_path
