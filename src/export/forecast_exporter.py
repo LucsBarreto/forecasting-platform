@@ -12,7 +12,7 @@ import pandas as pd
 
 from src.core.exceptions.data import DataError
 from src.ml.forecast.future_forecast import FutureForecastResult
-from src.schemas.metadata import MetadataSchema
+from src.schemas.metadata import MetadataSchema, SingleForecastMetadataSchema
 
 
 @dataclass(slots=True)
@@ -65,7 +65,7 @@ class ForecastExporter:
             raise TypeError("result.predictions must be a pandas Series.")
 
         if metadata is not None:
-            validated_metadata = MetadataSchema.model_validate(metadata)
+            validated_metadata = SingleForecastMetadataSchema.model_validate(metadata)
             self._validate_metadata_consistency(result, validated_metadata)
 
         dataframe = pd.DataFrame(
@@ -93,7 +93,7 @@ class ForecastExporter:
     @staticmethod
     def _validate_metadata_consistency(
         result: FutureForecastResult,
-        metadata: MetadataSchema,
+        metadata: SingleForecastMetadataSchema,
     ) -> None:
         """Valida que o sidecar de metadados é consistente com o envelope de resultado do forecast artefact."""
         if metadata.horizon != result.horizon:
@@ -105,6 +105,44 @@ class ForecastExporter:
 
         if metadata.target is None:
             raise DataError("Forecast metadata is inconsistent with the forecast artifact target.")
+
+    def export_multimodel_forecast(
+        self,
+        dataframe: pd.DataFrame,
+        metadata: dict,
+        filename: str = "future_forecast.csv",
+        date_column: str = "date",
+    ) -> Path:
+        """Exporta um artefato multimodelo e seu sidecar auditável."""
+        self._validate_dataframe(dataframe)
+        if date_column not in dataframe.columns:
+            raise DataError(f"Forecast date column '{date_column}' was not found.")
+
+        validated_metadata = MetadataSchema.model_validate(metadata)
+        model_columns = [column for column in dataframe.columns if column != date_column]
+        if model_columns != validated_metadata.models:
+            raise DataError(
+                "Forecast metadata models are inconsistent with the forecast artifact columns."
+            )
+        if validated_metadata.horizon != len(dataframe):
+            raise DataError(
+                "Forecast metadata is inconsistent with the forecast artifact horizon."
+            )
+        if validated_metadata.forecast_rows is not None and validated_metadata.forecast_rows != len(dataframe):
+            raise DataError(
+                "Forecast metadata is inconsistent with the forecast artifact row count."
+            )
+
+        exported_path = self.export_csv(dataframe, filename=filename)
+        metadata_path = self.output_directory / "forecast_metadata.json"
+        with metadata_path.open(mode="w", encoding="utf-8") as file:
+            json.dump(
+                validated_metadata.model_dump(mode="json", exclude_none=True),
+                file,
+                indent=4,
+                ensure_ascii=False,
+            )
+        return exported_path
 
     def export_parquet(
         self,
