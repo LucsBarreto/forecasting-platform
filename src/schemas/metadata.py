@@ -46,7 +46,31 @@ class MetadataTimestamps(BaseModel):
 
 
 class MetadataSchema(BaseModel):
-    """Contrato mínimo de identidade e auditoria do forecast."""
+    """Contrato de identidade e auditoria de um artefato multimodelo."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str = Field(pattern=r"^RUN_\d{8}_\d{6}$")
+    target: Literal["VOLUME", "VALOR"]
+    models: list[str] = Field(min_length=1)
+    horizon: int = Field(gt=0)
+    period: ForecastPeriod
+    version: str = Field(pattern=r"^\d+\.\d+\.\d+$")
+    timestamps: MetadataTimestamps
+    forecast_rows: int | None = Field(default=None, ge=0)
+
+    @field_validator("models")
+    @classmethod
+    def validate_models(cls, value: list[str]) -> list[str]:
+        if any(not model.strip() for model in value):
+            raise ValueError("models must contain only non-empty strings")
+        if len(set(value)) != len(value):
+            raise ValueError("models must not contain duplicates")
+        return value
+
+
+class SingleForecastMetadataSchema(BaseModel):
+    """Contrato de compatibilidade para um forecast de modelo único."""
 
     model_config = ConfigDict(extra="forbid")
 
