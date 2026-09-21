@@ -14,7 +14,7 @@ def valid_metadata() -> dict:
     return {
         "run_id": "RUN_20260114_000000",
         "target": "VOLUME",
-        "model": "LinearModel",
+        "models": ["LinearModel", "LightGBM"],
         "horizon": 2,
         "period": {
             "start": "2026-01-15",
@@ -34,6 +34,7 @@ def test_metadata_schema_accepts_complete_payload(valid_metadata: dict) -> None:
 
     assert schema.run_id == "RUN_20260114_000000"
     assert schema.target == "VOLUME"
+    assert schema.models == ["LinearModel", "LightGBM"]
     assert schema.horizon == 2
     assert schema.period.start.isoformat() == "2026-01-15"
     assert schema.timestamps.started_at.isoformat() == "2026-01-14T00:00:00+00:00"
@@ -41,7 +42,7 @@ def test_metadata_schema_accepts_complete_payload(valid_metadata: dict) -> None:
 
 @pytest.mark.parametrize(
     "field",
-    ["run_id", "target", "model", "horizon", "period", "version", "timestamps"],
+    ["run_id", "target", "models", "horizon", "period", "version", "timestamps"],
 )
 def test_metadata_schema_rejects_missing_required_field(
     valid_metadata: dict,
@@ -75,6 +76,11 @@ def test_metadata_schema_rejects_invalid_target(valid_metadata: dict) -> None:
 def test_metadata_schema_rejects_invalid_horizon(valid_metadata: dict, horizon: object) -> None:
     with pytest.raises(ValidationError):
         MetadataSchema.model_validate({**valid_metadata, "horizon": horizon})
+
+
+def test_metadata_schema_rejects_duplicate_models(valid_metadata: dict) -> None:
+    with pytest.raises(ValidationError):
+        MetadataSchema.model_validate({**valid_metadata, "models": ["LightGBM", "LightGBM"]})
 
 
 def test_metadata_schema_rejects_invalid_period(valid_metadata: dict) -> None:
