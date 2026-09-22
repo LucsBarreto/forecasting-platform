@@ -11,7 +11,7 @@ output_path: outputs
 runs_folder: runs
 
 # padrão de arquivos de entrada
-file_pattern: "*.csv"
+file_pattern: "*.xlsb"
 
 # colunas obrigatórias no arquivo de entrada
 required_columns:
