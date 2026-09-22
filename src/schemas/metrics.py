@@ -7,11 +7,38 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from src.core.enums.metrics import MetricType
-
 
 class MetricsSchema(BaseModel):
-    """Envelope oficial do artefato `metrics.json`."""
+    """Envelope oficial do artefato `metrics.json` em formato multimodelo."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str = Field(pattern=r"^RUN_\d{8}_\d{6}$")
+    target: Literal["VOLUME", "VALOR"]
+    metrics: dict[str, float]
+
+    @field_validator("metrics", mode="before")
+    @classmethod
+    def validate_metric_mapping(cls, value: Any) -> dict[str, float]:
+        if not isinstance(value, dict) or not value:
+            raise ValueError("metrics must be a non-empty object")
+
+        normalized: dict[str, float] = {}
+        for name, metric_value in value.items():
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"metric name must be a non-empty string: {name!r}")
+            if isinstance(metric_value, bool) or not isinstance(metric_value, (int, float)):
+                raise ValueError(f"metric '{name}' must be numeric")
+            metric_number = float(metric_value)
+            if not math.isfinite(metric_number):
+                raise ValueError(f"metric '{name}' must be finite")
+            normalized[name] = metric_number
+
+        return normalized
+
+
+class SingleModelMetricsSchema(BaseModel):
+    """Envelope legado para um único modelo, mantido apenas por compatibilidade."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -33,15 +60,15 @@ class MetricsSchema(BaseModel):
         if not isinstance(value, dict) or not value:
             raise ValueError("metrics must be a non-empty object")
 
-        supported_metrics = {metric.value for metric in MetricType}
         normalized: dict[str, float] = {}
         for name, metric_value in value.items():
-            if not isinstance(name, str) or name not in supported_metrics:
-                raise ValueError(f"unsupported metric name: {name!r}")
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"metric name must be a non-empty string: {name!r}")
             if isinstance(metric_value, bool) or not isinstance(metric_value, (int, float)):
                 raise ValueError(f"metric '{name}' must be numeric")
-            if not math.isfinite(float(metric_value)):
+            metric_number = float(metric_value)
+            if not math.isfinite(metric_number):
                 raise ValueError(f"metric '{name}' must be finite")
-            normalized[name] = float(metric_value)
+            normalized[name] = metric_number
 
         return normalized
