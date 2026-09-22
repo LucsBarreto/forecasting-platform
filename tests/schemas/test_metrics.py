@@ -10,15 +10,15 @@ from src.schemas.metrics import MetricsSchema
 
 @pytest.fixture
 def valid_metrics() -> dict:
-    """Return a complete metrics artifact payload."""
+    """Return a complete multimodel metrics artifact payload."""
     return {
         "run_id": "RUN_20260911_090311",
         "target": "VOLUME",
-        "model": "LinearModel",
         "metrics": {
-            "mae": 12.3,
-            "rmse": 17.4,
-            "mape": 0.12,
+            "baseline": 105.73,
+            "linear_regression": 147.13,
+            "lightgbm": 77.09,
+            "catboost": 77.29,
         },
     }
 
@@ -28,12 +28,12 @@ def test_metrics_schema_accepts_complete_payload(valid_metrics: dict) -> None:
 
     assert schema.run_id == "RUN_20260911_090311"
     assert schema.target == "VOLUME"
-    assert schema.metrics["mae"] == 12.3
+    assert schema.metrics["baseline"] == 105.73
 
 
 @pytest.mark.parametrize(
     "field",
-    ["run_id", "target", "model", "metrics"],
+    ["run_id", "target", "metrics"],
 )
 def test_metrics_schema_rejects_missing_required_field(
     valid_metrics: dict,
@@ -63,30 +63,18 @@ def test_metrics_schema_accepts_only_supported_targets(valid_metrics: dict) -> N
         MetricsSchema.model_validate({**valid_metrics, "target": "SALES"})
 
 
-@pytest.mark.parametrize("model", ["", 10, None])
-def test_metrics_schema_rejects_invalid_model(valid_metrics: dict, model: object) -> None:
-    with pytest.raises(ValidationError):
-        MetricsSchema.model_validate({**valid_metrics, "model": model})
-
-
 @pytest.mark.parametrize(
     "metrics",
     [
         {},
-        {"invalid": 1.0},
-        {"mae": "12.3"},
-        {"mae": float("nan")},
-        {"mae": float("inf")},
+        {"": 1.0},
+        {"baseline": "12.3"},
+        {"baseline": float("nan")},
+        {"baseline": float("inf")},
         {1: 12.3},
+        {"baseline": {"mean": 12.3}},
     ],
 )
 def test_metrics_schema_rejects_invalid_metrics(valid_metrics: dict, metrics: dict) -> None:
     with pytest.raises(ValidationError):
         MetricsSchema.model_validate({**valid_metrics, "metrics": metrics})
-
-
-def test_metrics_schema_rejects_nested_metric_structure(valid_metrics: dict) -> None:
-    with pytest.raises(ValidationError):
-        MetricsSchema.model_validate(
-            {**valid_metrics, "metrics": {"mae": {"mean": 12.3}}}
-        )
