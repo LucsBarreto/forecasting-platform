@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -32,12 +33,39 @@ class RunsService:
 
     def get_run(self, run_id: str) -> dict[str, str]:
         """Retorna o DTO de um run específico ou levanta 404 se ele não existir."""
-        runs_root = Path(settings.data.output_path) / settings.data.runs_folder
+        runs_root = (Path(settings.data.output_path) / settings.data.runs_folder).resolve()
         if not runs_root.exists():
             raise HTTPException(status_code=404, detail="run not found")
 
-        run_path = runs_root / run_id
+        run_path = (runs_root / run_id).resolve()
+        try:
+            run_path.relative_to(runs_root)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="run not found")
         if not run_path.exists() or not run_path.is_dir():
             raise HTTPException(status_code=404, detail="run not found")
 
-        return {"run_id": run_id}
+        metadata_path = run_path / "metadata.json"
+        if not metadata_path.is_file():
+            raise HTTPException(status_code=422, detail="run metadata is invalid")
+
+        try:
+            with metadata_path.open(mode="r", encoding="utf-8") as file:
+                metadata = json.load(file)
+        except (json.JSONDecodeError, OSError):
+            raise HTTPException(status_code=422, detail="run metadata is invalid")
+
+        required_fields = ("run_id", "status", "started_at", "finished_at")
+        if (
+            not isinstance(metadata, dict)
+            or any(not isinstance(metadata.get(field), str) for field in required_fields)
+            or metadata["run_id"] != run_id
+        ):
+            raise HTTPException(status_code=422, detail="run metadata is invalid")
+
+        return {
+            "run_id": metadata["run_id"],
+            "status": metadata["status"],
+            "started_at": metadata["started_at"],
+            "finished_at": metadata["finished_at"],
+        }
