@@ -1,5 +1,7 @@
 """Regression test for the HTTP runs discovery contract."""
 
+import json
+
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
@@ -50,6 +52,18 @@ def test_runs_detail_endpoint_returns_a_single_run_json_and_404_for_unknown_run(
 
     existing = runs_root / "RUN_20260911_090311"
     existing.mkdir(parents=True, exist_ok=True)
+    (existing / "metadata.json").write_text(
+        json.dumps(
+            {
+                "run_id": "RUN_20260911_090311",
+                "status": "SUCCESS",
+                "started_at": "2026-09-21T14:12:01",
+                "finished_at": "2026-09-21T14:36:51",
+                "pipeline_version": "2.0.0",
+            }
+        ),
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(settings.data, "output_path", str(tmp_path))
 
@@ -58,8 +72,30 @@ def test_runs_detail_endpoint_returns_a_single_run_json_and_404_for_unknown_run(
 
     response = client.get("/runs/RUN_20260911_090311")
     assert response.status_code == 200
-    assert response.json() == {"run_id": "RUN_20260911_090311"}
+    assert response.json() == {
+        "run_id": "RUN_20260911_090311",
+        "status": "SUCCESS",
+        "started_at": "2026-09-21T14:12:01",
+        "finished_at": "2026-09-21T14:36:51",
+    }
 
     missing = client.get("/runs/RUN_DOES_NOT_EXIST")
     assert missing.status_code == 404
     assert "run_id" not in missing.text
+
+
+def test_runs_detail_endpoint_rejects_missing_or_invalid_metadata(tmp_path, monkeypatch) -> None:
+    """GET /runs/{run_id} must not synthesize detail data without valid persisted metadata."""
+    runs_root = tmp_path / settings.data.runs_folder
+    runs_root.mkdir(parents=True, exist_ok=True)
+    missing_metadata = runs_root / "RUN_WITHOUT_METADATA"
+    missing_metadata.mkdir()
+    invalid_metadata = runs_root / "RUN_WITH_INVALID_METADATA"
+    invalid_metadata.mkdir()
+    (invalid_metadata / "metadata.json").write_text("{invalid-json}", encoding="utf-8")
+    monkeypatch.setattr(settings.data, "output_path", str(tmp_path))
+
+    client = TestClient(create_app())
+
+    assert client.get("/runs/RUN_WITHOUT_METADATA").status_code == 422
+    assert client.get("/runs/RUN_WITH_INVALID_METADATA").status_code == 422
